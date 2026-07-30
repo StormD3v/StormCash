@@ -48,6 +48,7 @@ These variables are shared between both services and should be set at the projec
 
 3. **Deploy Django Service**
    - Connect `apps/django-api` as a new service
+   - **IMPORTANT**: Set the Root Directory to `apps/django-api` in Railway's service settings (this is NOT automatic)
    - Railway will automatically inject `DATABASE_URL` from the Postgres addon
    - Set Django-specific variables:
      - `DJANGO_SECRET_KEY`: Generate a random string
@@ -56,8 +57,9 @@ These variables are shared between both services and should be set at the projec
 
 4. **Deploy FastAPI Service**
    - Connect `apps/fastapi` as a new service
+   - **IMPORTANT**: Set the Root Directory to `apps/fastapi` in Railway's service settings (this is NOT automatic)
    - Railway will automatically inject `DATABASE_URL` from the Postgres addon
-   - Set `CORS_ORIGINS`: Your frontend domain(s) (can be left as `*` for testing)
+   - Set `CORS_ORIGINS`: Your frontend domain(s) (required - app will fail if not set)
 
 ## Important Notes
 
