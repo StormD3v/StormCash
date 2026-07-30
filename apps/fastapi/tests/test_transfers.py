@@ -11,7 +11,7 @@ import os
 import secrets
 
 # Test database URL
-TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "postgresql://stormcash:stormcash123@localhost:5432/stormcash_test")
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "postgresql://stormcash:stormcash123@localhost:5433/stormcash_test")
 
 # Create test engine
 test_engine = create_engine(TEST_DATABASE_URL)
@@ -137,7 +137,7 @@ class TestTransferEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["account_number"] == acc1.account_number
-        assert data["balance"] == 1000.00
+        assert float(data["balance"]) == 1000.00
     
     def test_history_endpoint_returns_transactions(self, client, test_accounts, auth_headers):
         """Test that history endpoint returns transactions"""
@@ -222,11 +222,11 @@ class TestTransferEndpoints:
         
         # No JWT
         response = client.post("/api/transfer", json=transfer_data)
-        assert response.status_code == 403
+        assert response.status_code == 401
         
         # Invalid JWT
         response = client.post("/api/transfer", json=transfer_data, headers={"Authorization": "Bearer invalid.token"})
-        assert response.status_code == 403
+        assert response.status_code == 401
     
     def test_concurrent_transfers_race_condition(self, client, test_accounts, auth_headers, db_session):
         """

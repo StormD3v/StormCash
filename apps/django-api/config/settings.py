@@ -62,6 +62,14 @@ DATABASES = {
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '5433',
+    },
+    'stormcash_test': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'stormcash_test',
+        'USER': 'stormcash',
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': 'localhost',
+        'PORT': '5433',
     }
 }
 

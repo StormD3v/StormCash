@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://stormcash:stormcash123@localhost:5432/stormcash")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://stormcash:stormcash123@localhost:5433/stormcash")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
