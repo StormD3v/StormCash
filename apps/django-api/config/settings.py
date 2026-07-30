@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import dj_database_url
 
 load_dotenv()
 
@@ -8,9 +9,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-in-production')
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -26,6 +27,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -54,24 +56,35 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'stormcash',
-        'USER': 'stormcash',
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': 'localhost',
-        'PORT': '5433',
-    },
-    'stormcash_test': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'stormcash_test',
-        'USER': 'stormcash',
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': 'localhost',
-        'PORT': '5433',
+# Use dj-database-url to parse Railway's DATABASE_URL in production
+# Fall back to local development settings if DATABASE_URL is not set
+if os.getenv('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'stormcash',
+            'USER': 'stormcash',
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': 'localhost',
+            'PORT': '5433',
+        },
+        'stormcash_test': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'stormcash_test',
+            'USER': 'stormcash',
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': 'localhost',
+            'PORT': '5433',
+        }
+    }
 
 AUTH_USER_MODEL = 'ledger.User'
 
@@ -88,6 +101,12 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Whitenoise configuration for production
+if not DEBUG:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
