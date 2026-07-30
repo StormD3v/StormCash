@@ -23,6 +23,7 @@ These variables are shared between both services and should be set at the projec
 | `DJANGO_SECRET_KEY` | Django's secret key for cryptographic signing | `django-insecure-change-in-production` | Generate a random string for production |
 | `DEBUG` | Django debug mode | `False` | Set to `False` in production |
 | `ALLOWED_HOSTS` | Comma-separated list of allowed hostnames | `*.up.railway.app,yourdomain.com` | Include Railway's domain and any custom domains |
+| `CSRF_TRUSTED_ORIGINS` | Comma-separated list of trusted origins for CSRF | `https://stormcash-django-production.up.railway.app` | Required for Django admin login in production behind HTTPS proxy |
 | `JWT_SECRET_KEY` | (Shared - see above) | - | Must match FastAPI's JWT_SECRET_KEY |
 | `JWT_ALGORITHM` | (Shared - see above) | - | Must match FastAPI's JWT_ALGORITHM |
 
@@ -54,6 +55,7 @@ These variables are shared between both services and should be set at the projec
      - `DJANGO_SECRET_KEY`: Generate a random string
      - `DEBUG`: `False`
      - `ALLOWED_HOSTS`: `*.up.railway.app` (plus any custom domains)
+     - `CSRF_TRUSTED_ORIGINS`: Your Railway domain (e.g., `https://stormcash-django-production.up.railway.app`)
 
 4. **Deploy FastAPI Service**
    - Connect `apps/fastapi` as a new service
