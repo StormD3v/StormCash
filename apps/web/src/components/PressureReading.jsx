@@ -38,12 +38,12 @@ const PressureReading = ({ balance = 0, trend = 'stable' }) => {
     const height = 60;
     const points = [];
     const segments = 20;
-    
+
     for (let i = 0; i <= segments; i++) {
       const x = (i / segments) * width;
       // Add some variation to make it look like a pressure trace
       const baseVariation = Math.sin(i * 0.5) * 10;
-      const trendOffset = trend === 'rising' ? (i / segments) * 20 : 
+      const trendOffset = trend === 'rising' ? (i / segments) * 20 :
                          trend === 'falling' ? -(i / segments) * 20 : 0;
       const y = height / 2 + baseVariation + trendOffset;
       points.push(`${x},${y}`);
@@ -52,16 +52,16 @@ const PressureReading = ({ balance = 0, trend = 'stable' }) => {
     return `M ${points.join(' L ')}`;
   };
 
-  const traceColor = trend === 'rising' ? '#d9a35c' : 
-                     trend === 'falling' ? '#7688a8' : 
+  const traceColor = trend === 'rising' ? '#d9a35c' :
+                     trend === 'falling' ? '#7688a8' :
                      '#96958f';
 
-  const trendLabel = trend === 'rising' ? 'Rising' : 
-                    trend === 'falling' ? 'Falling' : 
+  const trendLabel = trend === 'rising' ? 'Rising' :
+                    trend === 'falling' ? 'Falling' :
                     'Stable';
 
-  const trendColorClass = trend === 'rising' ? 'text-gold' : 
-                         trend === 'falling' ? 'text-storm' : 
+  const trendColorClass = trend === 'rising' ? 'text-gold' :
+                         trend === 'falling' ? 'text-storm' :
                          'text-text-mid';
 
   return (

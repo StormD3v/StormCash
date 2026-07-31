@@ -14,11 +14,11 @@ const Sky = ({ trend = 'stable', trigger = null, height = '200px' }) => {
     }));
   }, []);
 
-  // Gradient colors based on trend
+  // Gradient colors based on trend - more prominent layered gradient
   const gradientColors = {
-    rising: 'linear-gradient(to bottom, #12151c, #191d26, rgba(217, 163, 92, 0.1))',
-    falling: 'linear-gradient(to bottom, #12151c, #191d26, rgba(118, 136, 168, 0.1))',
-    stable: 'linear-gradient(to bottom, #12151c, #191d26, #191d26)',
+    rising: 'linear-gradient(to bottom, #0a0c12 0%, #12151c 40%, #1a1f2a 70%, rgba(217, 163, 92, 0.15) 100%)',
+    falling: 'linear-gradient(to bottom, #0a0c12 0%, #12151c 40%, #1a1f2a 70%, rgba(118, 136, 168, 0.15) 100%)',
+    stable: 'linear-gradient(to bottom, #0a0c12 0%, #12151c 40%, #1a1f2a 70%, #1a1f2a 100%)',
   };
 
   const gradientStyle = gradientColors[trend] || gradientColors.stable;
@@ -71,19 +71,19 @@ const Sky = ({ trend = 'stable', trigger = null, height = '200px' }) => {
         transition={{ duration: 3, ease: 'easeInOut' }}
       />
 
-      {/* Horizon glow line */}
+      {/* Horizon glow line - more prominent */}
       <div 
-        className="absolute bottom-0 left-0 right-0 h-px"
+        className="absolute bottom-0 left-0 right-0 h-1"
         style={{ 
-          background: 'linear-gradient(to right, transparent, rgba(118, 136, 168, 0.5), transparent)' 
+          background: 'linear-gradient(to right, transparent, rgba(217, 163, 92, 0.4), transparent)' 
         }}
       />
       
-      {/* Haze effect near horizon */}
+      {/* Haze effect near horizon - more visible */}
       <div 
-        className="absolute bottom-0 left-0 right-0 h-20"
+        className="absolute bottom-0 left-0 right-0 h-32"
         style={{ 
-          background: 'linear-gradient(to top, rgba(118, 136, 168, 0.1), transparent)' 
+          background: 'linear-gradient(to top, rgba(217, 163, 92, 0.08), transparent)' 
         }}
       />
     </div>
