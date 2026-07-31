@@ -10,25 +10,33 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is logged in on mount
     const token = localStorage.getItem('access_token');
+    const userDetails = localStorage.getItem('user_details');
     if (token) {
-      setUser({ token }); // In a real app, you'd decode the JWT or fetch user info
+      setUser({ token, ...(userDetails ? JSON.parse(userDetails) : {}) });
     }
     setLoading(false);
   }, []);
 
   const login = async (username, password) => {
     const data = await authAPI.login(username, password);
-    setUser({ token: data.access });
+    if (data.access) {
+      localStorage.setItem('user_details', JSON.stringify(data.user));
+      setUser({ token: data.access, ...data.user });
+    }
     return data;
   };
 
   const register = async (username, email, password) => {
     const data = await authAPI.register(username, email, password);
-    setUser({ token: data.access });
+    if (data.access) {
+      localStorage.setItem('user_details', JSON.stringify(data.user));
+      setUser({ token: data.access, ...data.user });
+    }
     return data;
   };
 
   const logout = () => {
+    localStorage.removeItem('user_details');
     authAPI.logout();
     setUser(null);
   };
