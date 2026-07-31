@@ -54,30 +54,32 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-ground">
-      <Sky trend={trend} height="200px" />
+    <div className="min-h-screen relative bg-ground">
+      <Sky trend={trend} height="100vh" />
       
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="rounded-2xl p-8 border bg-panel border-storm-dim">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="font-display text-2xl font-semibold text-text-hi">
-              Dashboard
-            </h1>
-            {usingMockData && (
-              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gold/20 text-gold border border-gold/30">
-                Demo Mode
-              </div>
-            )}
-          </div>
-          
-          <PressureReading balance={balance} trend={trend} />
-          
-          <div className="mt-8">
-            <ActionGrid onAction={handleAction} />
-          </div>
-          
-          <div className="mt-8 pt-6 border-t border-storm-dim">
-            <StormLog transactions={transactions} />
+      <div className="absolute inset-0 flex items-center justify-center px-6">
+        <div className="w-full max-w-4xl">
+          <div className="rounded-2xl p-8 border bg-panel border-storm-dim">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="font-display text-2xl font-semibold text-text-hi">
+                Dashboard
+              </h1>
+              {usingMockData && (
+                <div className="px-3 py-1 rounded-full text-xs font-medium bg-gold/20 text-gold border border-gold/30">
+                  Demo Mode
+                </div>
+              )}
+            </div>
+            
+            <PressureReading balance={balance} trend={trend} />
+            
+            <div className="mt-8">
+              <ActionGrid onAction={handleAction} />
+            </div>
+            
+            <div className="mt-8 pt-6 border-t border-storm-dim">
+              <StormLog transactions={transactions} />
+            </div>
           </div>
         </div>
       </div>

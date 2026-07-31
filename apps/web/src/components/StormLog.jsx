@@ -33,7 +33,7 @@ const StormLog = ({ transactions = [] }) => {
       id: tx.reference_id || tx.id,
       type: type,
       amount: isCredit ? 0 : 0, // Amount would need to come from ledger entries
-      timestamp: new Date(tx.created_at),
+      timestamp: tx.created_at ? new Date(tx.created_at) : new Date(),
       direction: isCredit ? 'credit' : 'debit',
     };
   });
