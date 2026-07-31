@@ -27,10 +27,10 @@ const ObservatoryLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-ground">
-      <Sky trend="stable" height="50vh" />
+    <div className="min-h-screen relative bg-ground">
+      <Sky trend="stable" height="100vh" />
       
-      <div className="flex-1 flex items-center justify-center px-6 -mt-20">
+      <div className="absolute inset-0 flex items-center justify-center px-6">
         <motion.div
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 20 }}
@@ -64,6 +64,7 @@ const ObservatoryLogin = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full rounded-lg px-4 py-3 placeholder:text-sm focus:outline-none transition-colors bg-ground border border-storm-dim text-text-hi"
                   placeholder="your_username"
+                  autoComplete="username"
                   required
                 />
               </div>
@@ -78,6 +79,7 @@ const ObservatoryLogin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg px-4 py-3 placeholder:text-sm focus:outline-none transition-colors bg-ground border border-storm-dim text-text-hi"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   required
                 />
               </div>
@@ -96,8 +98,12 @@ const ObservatoryLogin = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-text-mid">
                 Don't have an account?{' '}
-                <button className="transition-colors text-gold">
-                  Sign up
+                <button 
+                  className="transition-colors text-gold opacity-50 cursor-not-allowed"
+                  disabled
+                  title="Registration coming soon"
+                >
+                  Sign up (coming soon)
                 </button>
               </p>
             </div>
