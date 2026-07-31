@@ -22,6 +22,7 @@ class TransactionResponse(BaseModel):
     reference_id: str
     description: Optional[str]
     created_at: datetime
+    amount: Optional[Decimal] = None
 
 class LedgerEntryResponse(BaseModel):
     id: UUID

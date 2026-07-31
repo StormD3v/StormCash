@@ -105,14 +105,15 @@ async def transfer(
         
         db.commit()
         db.refresh(transaction)
-        
+
         return TransactionResponse(
             id=transaction.id,
             transaction_type=transaction.transaction_type.value,
             status=transaction.status.value,
             reference_id=transaction.reference_id,
             description=transaction.description,
-            created_at=transaction.created_at
+            created_at=transaction.created_at,
+            amount=request.amount
         )
         
     except HTTPException:
@@ -193,11 +194,17 @@ async def get_history(
         select(LedgerEntry).where(LedgerEntry.account_id == account.id)
     ).scalars().all()
     
-    # Get unique transactions
+    # Get unique transactions and their amounts
     transaction_ids = set(entry.transaction_id for entry in entries)
     transactions = db.execute(
         select(Transaction).where(Transaction.id.in_(transaction_ids))
     ).scalars().all()
+    
+    # Build a map of transaction_id to amount for this account
+    transaction_amounts = {}
+    for entry in entries:
+        if entry.transaction_id not in transaction_amounts:
+            transaction_amounts[entry.transaction_id] = entry.amount
     
     return HistoryResponse(
         transactions=[
@@ -207,7 +214,8 @@ async def get_history(
                 status=t.status.value,
                 reference_id=t.reference_id,
                 description=t.description,
-                created_at=t.created_at
+                created_at=t.created_at,
+                amount=transaction_amounts.get(t.id)
             )
             for t in transactions
         ]
@@ -260,17 +268,18 @@ async def deposit(
             entry_type=EntryType.CREDIT
         )
         db.add(credit_entry)
-        
+
         db.commit()
         db.refresh(transaction)
-        
+
         return TransactionResponse(
             id=transaction.id,
             transaction_type=transaction.transaction_type.value,
             status=transaction.status.value,
             reference_id=transaction.reference_id,
             description=transaction.description,
-            created_at=transaction.created_at
+            created_at=transaction.created_at,
+            amount=request.amount
         )
         
     except HTTPException:
@@ -352,14 +361,15 @@ async def withdraw(
         
         db.commit()
         db.refresh(transaction)
-        
+
         return TransactionResponse(
             id=transaction.id,
             transaction_type=transaction.transaction_type.value,
             status=transaction.status.value,
             reference_id=transaction.reference_id,
             description=transaction.description,
-            created_at=transaction.created_at
+            created_at=transaction.created_at,
+            amount=request.amount
         )
         
     except HTTPException:
