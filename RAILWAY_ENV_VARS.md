@@ -34,7 +34,7 @@ These variables are shared between both services and should be set at the projec
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:port/db` | **Must be the same as Django's DATABASE_URL** - Railway provides this automatically |
 | `JWT_SECRET_KEY` | (Shared - see above) | - | Must match Django's JWT_SECRET_KEY |
 | `JWT_ALGORITHM` | (Shared - see above) | - | Must match Django's JWT_ALGORITHM |
-| `CORS_ORIGINS` | Comma-separated list of allowed frontend origins | `https://your-frontend.vercel.app,https://localhost:3000` | Set to your frontend domain(s) once deployed |
+| `CORS_ORIGINS` | Comma-separated list of allowed frontend origins | `https://your-frontend.vercel.app,https://localhost:3000` | **CRITICAL**: Set to your Vercel frontend domain once deployed - this will fail silently if not configured correctly |
 
 ## Setup Instructions
 
