@@ -13,7 +13,9 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!user) {
+  // Check both context state and localStorage as fallback for race conditions
+  const token = localStorage.getItem('access_token');
+  if (!user && !token) {
     return <Navigate to="/login" replace />;
   }
 
