@@ -17,7 +17,7 @@ CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.ge
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3001,http://127.0.0.1:3001').split(',')
+CORS_ALLOWED_ORIGINS = (os.getenv('CORS_ALLOWED_ORIGINS') or os.getenv('CORS_ORIGINS') or 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 INSTALLED_APPS = [
