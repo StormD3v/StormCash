@@ -67,8 +67,8 @@ const PressureReading = ({ balance = 0, trend = 'stable' }) => {
   return (
     <div className="w-full">
       {/* Balance number */}
-      <div className="flex items-baseline gap-3 mb-2">
-        <motion.div 
+      <div className="flex items-baseline gap-3 mb-4">
+        <motion.div
           className="font-display text-5xl font-semibold text-text-hi"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -77,8 +77,12 @@ const PressureReading = ({ balance = 0, trend = 'stable' }) => {
           ${displayBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </motion.div>
         <motion.div
-          className="text-sm font-medium"
-          style={{ color: trend === 'rising' ? '#d9a35c' : trend === 'falling' ? '#7688a8' : '#96958f' }}
+          className="text-sm font-medium px-2 py-1 rounded-full border"
+          style={{
+            color: trend === 'rising' ? '#d9a35c' : trend === 'falling' ? '#7688a8' : '#96958f',
+            borderColor: trend === 'rising' ? '#d9a35c40' : trend === 'falling' ? '#7688a840' : '#96958f40',
+            backgroundColor: trend === 'rising' ? '#d9a35c10' : trend === 'falling' ? '#7688a810' : '#96958f10'
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
@@ -94,9 +98,9 @@ const PressureReading = ({ balance = 0, trend = 'stable' }) => {
         animate={{ opacity: 1, scaleX: 1 }}
         transition={{ delay: 0.2, duration: 0.8, ease: 'easeOut' }}
       >
-        <svg 
-          width="100%" 
-          height="60" 
+        <svg
+          width="100%"
+          height="60"
           viewBox="0 0 300 60"
           preserveAspectRatio="none"
           className="overflow-visible"
@@ -105,7 +109,7 @@ const PressureReading = ({ balance = 0, trend = 'stable' }) => {
           <line x1="0" y1="15" x2="300" y2="15" stroke="currentColor" strokeWidth="0.5" opacity="0.3" className="text-storm-dim" />
           <line x1="0" y1="30" x2="300" y2="30" stroke="currentColor" strokeWidth="0.5" opacity="0.3" className="text-storm-dim" />
           <line x1="0" y1="45" x2="300" y2="45" stroke="currentColor" strokeWidth="0.5" opacity="0.3" className="text-storm-dim" />
-          
+
           {/* Pressure trace line */}
           <motion.path
             d={generateTracePath()}
@@ -118,7 +122,7 @@ const PressureReading = ({ balance = 0, trend = 'stable' }) => {
             animate={{ pathLength: 1 }}
             transition={{ delay: 0.4, duration: 1, ease: 'easeInOut' }}
           />
-          
+
           {/* End point indicator */}
           <motion.circle
             cx="300"
