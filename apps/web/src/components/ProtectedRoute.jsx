@@ -13,9 +13,8 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // Check both context state and localStorage as fallback for race conditions
-  const token = localStorage.getItem('access_token');
-  if (!user && !token) {
+  // Only check context state — logout clears both user and localStorage atomically
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 

@@ -14,6 +14,9 @@ const clearTokens = () => {
   localStorage.removeItem('refresh_token');
 };
 
+// Prevent duplicate auth expired event dispatches
+let authExpiredDispatched = false;
+
 // Django Auth API
 export const authAPI = {
   async register(username, email, password) {
@@ -38,6 +41,8 @@ export const authAPI = {
     const data = await response.json();
     if (response.ok) {
       setTokens(data.access, data.refresh);
+      // Reset auth expired flag on successful login
+      authExpiredDispatched = false;
     }
     return data;
   },
@@ -45,61 +50,78 @@ export const authAPI = {
   async refreshToken() {
     const refresh = getRefreshToken();
     if (!refresh) throw new Error('No refresh token');
-    
+
     const response = await fetch(`${DJANGO_API_URL}/api/auth/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh }),
     });
-    const data = await response.json();
-    if (response.ok) {
-      setTokens(data.access, data.refresh);
+
+    if (!response.ok) {
+      throw new Error('Refresh token expired');
     }
+
+    const data = await response.json();
+    setTokens(data.access, data.refresh);
     return data;
   },
 
   logout() {
     clearTokens();
+    localStorage.removeItem('user_details');
+    // Reset auth expired flag on logout
+    authExpiredDispatched = false;
   },
 };
 
 // FastAPI with auth wrapper
 const fastAPIRequest = async (endpoint, options = {}) => {
-  let token = getAccessToken();
-  
-  const makeRequest = async (accessToken) => {
-    const response = await fetch(`${FASTAPI_URL}${endpoint}`, {
+  const token = getAccessToken();
+
+  // Abort immediately if no access token exists — never send Bearer undefined
+  if (!token) {
+    authAPI.logout();
+    if (!authExpiredDispatched) {
+      authExpiredDispatched = true;
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+    }
+    throw new Error('No access token');
+  }
+
+  const response = await fetch(`${FASTAPI_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  // Access token rejected — attempt refresh once
+  try {
+    const newTokens = await authAPI.refreshToken();
+    // refreshToken() only returns on success; retry with the confirmed new token
+    return await fetch(`${FASTAPI_URL}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${newTokens.access}`,
         ...options.headers,
       },
     });
-
-    if (response.status === 401) {
-      // Token expired, try to refresh
-      try {
-        const newTokens = await authAPI.refreshToken();
-        return await fetch(`${FASTAPI_URL}${endpoint}`, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${newTokens.access}`,
-            ...options.headers,
-          },
-        });
-      } catch (refreshError) {
-        authAPI.logout();
-        window.location.href = '/login';
-        throw refreshError;
-      }
+  } catch (refreshError) {
+    // Refresh failed (expired, missing, or network) — terminate the session
+    authAPI.logout();
+    if (!authExpiredDispatched) {
+      authExpiredDispatched = true;
+      window.dispatchEvent(new CustomEvent('auth:expired'));
     }
-
-    return response;
-  };
-
-  return makeRequest(token);
+    throw refreshError;
+  }
 };
 
 // FastAPI endpoints
@@ -144,6 +166,20 @@ export const fastAPI = {
       body: JSON.stringify({ amount }),
     });
     if (!response.ok) throw new Error('Withdrawal failed');
+    return response.json();
+  },
+
+  async getSettlementDetails(transactionId) {
+    const response = await fastAPIRequest(`/api/settlement/${transactionId}`);
+    if (!response.ok) throw new Error('Failed to fetch settlement details');
+    return response.json();
+  },
+
+  async processSettlement(transactionId) {
+    const response = await fastAPIRequest(`/api/settlement/process/${transactionId}`, {
+      method: 'POST',
+    });
+    if (!response.ok) throw new Error('Failed to process settlement');
     return response.json();
   },
 };

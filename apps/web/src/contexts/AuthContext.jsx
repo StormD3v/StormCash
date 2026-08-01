@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -6,6 +7,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if user is logged in on mount
@@ -16,6 +18,22 @@ export const AuthProvider = ({ children }) => {
     }
     setLoading(false);
   }, []);
+
+  // Listen for auth expired event from API layer
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      // authAPI.logout() clears access_token, refresh_token, and user_details
+      authAPI.logout();
+      setUser(null);
+      navigate('/login', { replace: true });
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+    };
+  }, [navigate]);
 
   const login = async (username, password) => {
     const data = await authAPI.login(username, password);
@@ -36,9 +54,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('user_details');
+    // authAPI.logout() clears access_token, refresh_token, and user_details
     authAPI.logout();
     setUser(null);
+    navigate('/login', { replace: true });
   };
 
   return (

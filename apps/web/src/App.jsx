@@ -9,8 +9,8 @@ import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
     return (
-        <AuthProvider>
-            <Router>
+        <Router>
+            <AuthProvider>
                 <ScrollToTop />
                 <Routes>
                     <Route path="/" element={<HomePage />} />
@@ -21,8 +21,8 @@ function App() {
                         </ProtectedRoute>
                     } />
                 </Routes>
-            </Router>
-        </AuthProvider>
+            </AuthProvider>
+        </Router>
     );
 }
 
