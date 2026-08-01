@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from database import get_db
 from models import Account, Transaction, LedgerEntry, TransactionStatus, TransactionType, EntryType, BaseUser
-from schemas import TransferRequest, DepositRequest, WithdrawRequest, BalanceResponse, HistoryResponse, TransactionResponse, LedgerEntryResponse
+from schemas import TransferRequest, DepositRequest, WithdrawRequest, BalanceResponse, HistoryResponse, TransactionResponse, LedgerEntryResponse, SettlementDetailsResponse
 from auth import get_current_user
+from blockchain import SettlementEngine
 from decimal import Decimal
 import secrets
 from datetime import datetime
@@ -20,72 +21,83 @@ async def transfer(
 ):
     # Generate unique reference ID
     reference_id = secrets.token_urlsafe(16)
-    
+
     try:
         # Lock both accounts with SELECT FOR UPDATE
         from_account = db.execute(
             select(Account).where(Account.account_number == request.from_account_number).with_for_update()
         ).scalar_one_or_none()
-        
+
         to_account = db.execute(
             select(Account).where(Account.account_number == request.to_account_number).with_for_update()
         ).scalar_one_or_none()
-        
+
         if not from_account:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Source account not found"
             )
-        
+
         if not to_account:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Destination account not found"
             )
-        
+
         # Verify accounts belong to authenticated user
         if from_account.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Source account does not belong to authenticated user"
             )
-        
+
         if to_account.user_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Destination account does not belong to authenticated user"
             )
-        
+
         # Calculate current balance from ledger entries
         from_balance = db.execute(
             select(LedgerEntry).where(LedgerEntry.account_id == from_account.id)
         ).scalars().all()
-        
+
         balance = Decimal('0.00')
         for entry in from_balance:
             if entry.entry_type == EntryType.CREDIT:
                 balance += entry.amount
             else:
                 balance -= entry.amount
-        
+
         # Insufficient funds check
         if balance < request.amount:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Insufficient funds"
             )
-        
-        # Create transaction
+
+        # Initialize blockchain settlement engine
+        settlement_engine = SettlementEngine(db)
+
+        # Create transaction as PENDING for blockchain settlement
         transaction = Transaction(
             transaction_type=TransactionType.TRANSFER,
-            status=TransactionStatus.COMPLETED,
+            status="PENDING",
             reference_id=reference_id,
-            description=f"Transfer from {request.from_account_number} to {request.to_account_number}"
+            description=f"Blockchain transfer from {request.from_account_number} to {request.to_account_number}"
         )
         db.add(transaction)
         db.flush()
-        
-        # Create debit entry for source account
+
+        # Initiate blockchain settlement
+        timeline = settlement_engine.initiate_settlement(
+            transaction,
+            request.from_account_number,
+            request.to_account_number,
+            request.amount
+        )
+
+        # Create debit entry for source account (immediate)
         debit_entry = LedgerEntry(
             transaction_id=transaction.id,
             account_id=from_account.id,
@@ -93,16 +105,7 @@ async def transfer(
             entry_type=EntryType.DEBIT
         )
         db.add(debit_entry)
-        
-        # Create credit entry for destination account
-        credit_entry = LedgerEntry(
-            transaction_id=transaction.id,
-            account_id=to_account.id,
-            amount=request.amount,
-            entry_type=EntryType.CREDIT
-        )
-        db.add(credit_entry)
-        
+
         db.commit()
         db.refresh(transaction)
 
@@ -113,9 +116,17 @@ async def transfer(
             reference_id=transaction.reference_id,
             description=transaction.description,
             created_at=transaction.created_at,
-            amount=request.amount
+            amount=request.amount,
+            settlement_stage=transaction.settlement_stage.value if transaction.settlement_stage else None,
+            blockchain_tx_hash=transaction.blockchain_tx_hash,
+            block_number=transaction.block_number,
+            confirmation_count=transaction.confirmation_count,
+            gas_fee=transaction.gas_fee,
+            blockchain_amount=transaction.blockchain_amount,
+            network_name=transaction.network_name,
+            settlement_time=transaction.settlement_time
         )
-        
+
     except HTTPException:
         db.rollback()
         raise
@@ -215,7 +226,15 @@ async def get_history(
                 reference_id=t.reference_id,
                 description=t.description,
                 created_at=t.created_at,
-                amount=transaction_amounts.get(t.id)
+                amount=transaction_amounts.get(t.id),
+                settlement_stage=t.settlement_stage.value if t.settlement_stage else None,
+                blockchain_tx_hash=t.blockchain_tx_hash,
+                block_number=t.block_number,
+                confirmation_count=t.confirmation_count,
+                gas_fee=t.gas_fee,
+                blockchain_amount=t.blockchain_amount,
+                network_name=t.network_name,
+                settlement_time=t.settlement_time
             )
             for t in transactions
         ]
@@ -253,7 +272,7 @@ async def deposit(
         # Create transaction
         transaction = Transaction(
             transaction_type=TransactionType.DEPOSIT,
-            status=TransactionStatus.COMPLETED,
+            status="COMPLETED",
             reference_id=reference_id,
             description=f"Deposit to account {account_number}"
         )
@@ -343,7 +362,7 @@ async def withdraw(
         # Create transaction
         transaction = Transaction(
             transaction_type=TransactionType.WITHDRAWAL,
-            status=TransactionStatus.COMPLETED,
+            status="COMPLETED",
             reference_id=reference_id,
             description=f"Withdrawal from account {account_number}"
         )
@@ -381,3 +400,140 @@ async def withdraw(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Withdrawal failed: {str(e)}"
         )
+
+@router.get("/settlement/{transaction_id}", response_model=SettlementDetailsResponse)
+async def get_settlement_details(
+    transaction_id: str,
+    current_user: BaseUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get detailed blockchain settlement information for a transaction."""
+    import uuid as uuid_module
+
+    try:
+        transaction_uuid = uuid_module.UUID(transaction_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid transaction ID format"
+        )
+
+    transaction = db.execute(
+        select(Transaction).where(Transaction.id == transaction_uuid)
+    ).scalar_one_or_none()
+
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found"
+        )
+
+    # Verify user owns at least one account involved in the transfer
+    if transaction.from_account_number:
+        from_account = db.execute(
+            select(Account).where(Account.account_number == transaction.from_account_number)
+        ).scalar_one_or_none()
+        if from_account and from_account.user_id == current_user.id:
+            pass  # User is authorized
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to view this transaction"
+            )
+
+    # Initialize settlement engine and get details
+    settlement_engine = SettlementEngine(db)
+    details = settlement_engine.get_settlement_details(transaction)
+
+    return SettlementDetailsResponse(**details)
+
+@router.post("/settlement/process/{transaction_id}", response_model=TransactionResponse)
+async def process_settlement(
+    transaction_id: str,
+    current_user: BaseUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Process the next stage of blockchain settlement for a pending transaction."""
+    import uuid as uuid_module
+
+    try:
+        transaction_uuid = uuid_module.UUID(transaction_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid transaction ID format"
+        )
+
+    transaction = db.execute(
+        select(Transaction).where(Transaction.id == transaction_uuid)
+    ).scalar_one_or_none()
+
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found"
+        )
+
+    if transaction.transaction_type != TransactionType.TRANSFER:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only transfer transactions have blockchain settlement"
+        )
+
+    # Verify user owns the source account
+    if transaction.from_account_number:
+        from_account = db.execute(
+            select(Account).where(Account.account_number == transaction.from_account_number)
+        ).scalar_one_or_none()
+        if not from_account or from_account.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to process this transaction"
+            )
+
+    # Initialize settlement engine and advance stage
+    settlement_engine = SettlementEngine(db)
+    current_stage = settlement_engine.advance_settlement_stage(transaction)
+
+    # If settlement is complete, credit the destination account
+    if current_stage == "DEPOSITED" and transaction.status == "COMPLETED":
+        to_account = db.execute(
+            select(Account).where(Account.account_number == transaction.to_account_number)
+        ).scalar_one_or_none()
+
+        if to_account:
+            # Calculate final amount after gas fees
+            final_amount = settlement_engine.blockchain.convert_token_to_fiat(
+                transaction.blockchain_amount or Decimal("0"),
+                transaction.gas_fee or Decimal("0")
+            )
+
+            # Create credit entry for destination account
+            credit_entry = LedgerEntry(
+                transaction_id=transaction.id,
+                account_id=to_account.id,
+                amount=final_amount,
+                entry_type=EntryType.CREDIT
+            )
+            db.add(credit_entry)
+
+    db.commit()
+    db.refresh(transaction)
+
+    return TransactionResponse(
+        id=transaction.id,
+        transaction_type=transaction.transaction_type.value,
+        status=transaction.status.value,
+        reference_id=transaction.reference_id,
+        description=transaction.description,
+        created_at=transaction.created_at,
+        amount=transaction.blockchain_amount,  # Return blockchain amount
+        settlement_stage=transaction.settlement_stage.value if transaction.settlement_stage else None,
+        blockchain_tx_hash=transaction.blockchain_tx_hash,
+        block_number=transaction.block_number,
+        confirmation_count=transaction.confirmation_count,
+        gas_fee=transaction.gas_fee,
+        blockchain_amount=transaction.blockchain_amount,
+        network_name=transaction.network_name,
+        settlement_time=transaction.settlement_time
+    )

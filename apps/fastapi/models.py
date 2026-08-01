@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Numeric, Text, Enum as SQLEnum
+from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Numeric, Text, Enum as SQLEnum, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
@@ -49,16 +49,39 @@ class TransactionType(str, enum.Enum):
     WITHDRAWAL = "WITHDRAWAL"
     FEE = "FEE"
 
+class SettlementStage(str, enum.Enum):
+    INITIATED = "INITIATED"
+    CONVERTING_TO_TOKEN = "CONVERTING_TO_TOKEN"
+    MINTING_TOKEN = "MINTING_TOKEN"
+    BROADCASTING = "BROADCASTING"
+    WAITING_CONFIRMATION = "WAITING_CONFIRMATION"
+    CONFIRMED = "CONFIRMED"
+    CONVERTING_TO_FIAT = "CONVERTING_TO_FIAT"
+    DEPOSITED = "DEPOSITED"
+    FAILED = "FAILED"
+
 class Transaction(Base):
     __tablename__ = 'transactions'
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at = Column(DateTime, default=datetime.utcnow)
     status = Column(SQLEnum(TransactionStatus), default=TransactionStatus.PENDING)
     description = Column(Text, nullable=True)
     transaction_type = Column(SQLEnum(TransactionType), nullable=False)
     reference_id = Column(String(100), unique=True, nullable=False)
-    
+
+    # Blockchain settlement fields
+    settlement_stage = Column(SQLEnum(SettlementStage), nullable=True)
+    blockchain_tx_hash = Column(String(66), nullable=True)  # 0x + 64 hex chars
+    block_number = Column(Integer, nullable=True)
+    confirmation_count = Column(Integer, default=0)
+    gas_fee = Column(Numeric(precision=19, scale=6), nullable=True)
+    blockchain_amount = Column(Numeric(precision=19, scale=6), nullable=True)
+    network_name = Column(String(50), default="StormChain")
+    settlement_time = Column(DateTime, nullable=True)
+    from_account_number = Column(String(12), nullable=True)
+    to_account_number = Column(String(12), nullable=True)
+
     ledger_entries = relationship("LedgerEntry", back_populates="transaction")
 
 class EntryType(str, enum.Enum):

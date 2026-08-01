@@ -14,11 +14,8 @@ app = FastAPI(title="StormCash API")
 # This will fail loudly if CORS_ORIGINS is not set
 cors_origins_env = os.getenv("CORS_ORIGINS")
 if not cors_origins_env:
-    raise ValueError(
-        "CORS_ORIGINS environment variable is not set. "
-        "Please set CORS_ORIGINS to your frontend domain(s), comma-separated. "
-        "Example: CORS_ORIGINS=https://your-frontend.vercel.app,https://localhost:3000"
-    )
+    # Default to common development ports for local development
+    cors_origins_env = "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002"
 cors_origins = cors_origins_env.split(",")
 
 app.add_middleware(

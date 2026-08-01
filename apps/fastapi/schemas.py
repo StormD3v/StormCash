@@ -23,6 +23,14 @@ class TransactionResponse(BaseModel):
     description: Optional[str]
     created_at: datetime
     amount: Optional[Decimal] = None
+    settlement_stage: Optional[str] = None
+    blockchain_tx_hash: Optional[str] = None
+    block_number: Optional[int] = None
+    confirmation_count: Optional[int] = None
+    gas_fee: Optional[Decimal] = None
+    blockchain_amount: Optional[Decimal] = None
+    network_name: Optional[str] = None
+    settlement_time: Optional[datetime] = None
 
 class LedgerEntryResponse(BaseModel):
     id: UUID
@@ -37,3 +45,19 @@ class BalanceResponse(BaseModel):
 
 class HistoryResponse(BaseModel):
     transactions: list[TransactionResponse]
+
+class SettlementDetailsResponse(BaseModel):
+    transaction_id: str
+    reference_id: str
+    blockchain_tx_hash: Optional[str]
+    block_number: Optional[int]
+    confirmation_count: int
+    gas_fee: float
+    blockchain_amount: float
+    fiat_amount: float
+    network_name: str
+    settlement_stage: Optional[str]
+    settlement_time: Optional[str]
+    from_account: Optional[str]
+    to_account: Optional[str]
+    explorer_url: Optional[str]
