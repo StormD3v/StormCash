@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import Sky from '../components/Sky';
 import DashboardLayout from '../components/Dashboard/DashboardLayout';
 import OverviewHeader from '../components/Dashboard/OverviewHeader';
@@ -18,6 +19,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const isNewUser = new URLSearchParams(location.search).get('welcome') === '1';
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(isNewUser);
   const [balance, setBalance] = useState(0);
   const [trend, setTrend] = useState('stable');
   const [transactions, setTransactions] = useState([]);
@@ -60,7 +64,8 @@ const Dashboard = () => {
 
       if (txs.length > 0 && newBalance > 0) {
         const lastTx = txs[0];
-        setTrend(lastTx.transaction_type === 'deposit' ? 'rising' : 'stable');
+        // transaction_type is uppercase from the API
+        setTrend(lastTx.transaction_type?.toUpperCase() === 'DEPOSIT' ? 'rising' : 'stable');
       } else {
         setTrend('stable');
       }
@@ -81,8 +86,9 @@ const Dashboard = () => {
 
   // Business Logic Selectors
   const stats = useMemo(() => {
-    const depositTxs = transactions.filter(tx => tx.transaction_type === 'deposit');
-    const withdrawalTxs = transactions.filter(tx => tx.transaction_type === 'withdrawal');
+    // transaction_type comes from the API as uppercase ('DEPOSIT', 'WITHDRAWAL', 'TRANSFER')
+    const depositTxs = transactions.filter(tx => tx.transaction_type?.toUpperCase() === 'DEPOSIT');
+    const withdrawalTxs = transactions.filter(tx => tx.transaction_type?.toUpperCase() === 'WITHDRAWAL');
 
     const totalDeposits = depositTxs.reduce((sum, tx) => sum + parseFloat(tx.amount || 0), 0);
     const totalWithdrawals = withdrawalTxs.reduce((sum, tx) => sum + parseFloat(tx.amount || 0), 0);
@@ -149,9 +155,10 @@ const Dashboard = () => {
     } else if (pageId === 'history' || pageId === 'dashboard') {
       activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (pageId === 'explorer') {
-      window.open('https://stormchain.explorer', '_blank');
+      setSelectedTransactionId(null);
+      setShowTransactionExplorer(true);
     } else if (pageId === 'settings') {
-      alert('Settings panel feature coming soon!');
+      // Settings panel — no-op for now, sidebar item stays for future use
     }
   }, []);
 
@@ -185,6 +192,37 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
+            {/* ── Welcome banner (shown on first login after registration) ── */}
+            <AnimatePresence>
+              {showWelcomeBanner && accountNumber && (
+                <motion.div
+                  className="rounded-xl border border-gold/25 bg-gold/8 px-4 py-3.5 flex items-center justify-between gap-4 flex-shrink-0"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-gold uppercase tracking-wider mb-0.5">
+                      Account created
+                    </p>
+                    <p className="text-[10.5px] text-text-mid">
+                      Your account number is{' '}
+                      <span className="font-mono text-text-hi tracking-widest select-all">{accountNumber}</span>
+                      {' '}— share it so others can send you transfers.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowWelcomeBanner(false)}
+                    className="text-text-low hover:text-text-mid transition-colors flex-shrink-0 text-xs font-semibold uppercase tracking-wider"
+                    type="button"
+                  >
+                    Dismiss
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* 🖥️ Desktop layout (Visible on md breakpoint and above) */}
             <div className="hidden md:block space-y-5">
               {/* Overview Header / Greetings */}
@@ -208,7 +246,10 @@ const Dashboard = () => {
               <AccountSummary
                 accountNumber={accountNumber}
                 balance={balance}
-                onDetailsClick={() => alert(`Details for account: ${accountNumber}`)}
+                onDetailsClick={() => {
+                  // Scroll to activity section when details clicked
+                  activityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
               />
 
               {/* Quick Actions Shortcuts row */}

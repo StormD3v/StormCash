@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Activity, Coins, ExternalLink } from 'lucide-react';
+import { Shield, Activity, Coins } from 'lucide-react';
 
 const SecondaryContent = ({ transactions = [] }) => {
   const pendingTxs = transactions.filter(
@@ -86,17 +86,11 @@ const SecondaryContent = ({ transactions = [] }) => {
         ))}
       </div>
 
-      {/* Explorer link */}
+      {/* Explorer note */}
       <div className="px-4 pb-4">
-        <a
-          href="https://stormchain.explorer"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-storm-dim/6 hover:bg-storm-dim/12 border border-storm-dim/18 hover:border-storm-dim/30 text-[10px] font-semibold text-text-low hover:text-text-mid transition-all duration-150 uppercase tracking-wider"
-        >
-          Open Explorer
-          <ExternalLink size={9.5} strokeWidth={2} />
-        </a>
+        <p className="text-center text-[9px] text-text-low/50 leading-relaxed">
+          Settlement data is simulated via StormChain
+        </p>
       </div>
     </div>
   );

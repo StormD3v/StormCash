@@ -39,7 +39,7 @@ const Register = () => {
     try {
       const data = await register(form.username, form.email, form.password, form.password_confirm);
       if (data?.access) {
-        navigate('/dashboard', { replace: true });
+        navigate('/dashboard?welcome=1', { replace: true });
       } else {
         // Surface the first error message from the Django serializer
         const firstError =

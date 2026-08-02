@@ -12,10 +12,6 @@ const AccountSummary = ({ accountNumber = '', balance = 0, onDetailsClick }) => 
     });
   };
 
-  const maskedNumber = accountNumber
-    ? `•••• •••• ${accountNumber.slice(0, 4)} ${accountNumber.slice(4, 8)} ${accountNumber.slice(8)}`
-    : '•••• •••• •••• ••••';
-
   return (
     <div className="rounded-xl px-4 py-3.5 border border-storm-dim/20 bg-panel/90 backdrop-blur-md shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 flex-shrink-0">
 

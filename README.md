@@ -176,7 +176,9 @@ npm run dev
 
 ### 6. Create a user
 
-Registration is not exposed in the UI. Create one via the API:
+Registration is available at `http://localhost:3000/register`. After registering, you are automatically redirected to the dashboard where your account number is displayed with a copy button.
+
+You can also register via the API directly:
 
 ```bash
 curl -X POST http://localhost:8000/api/auth/register/ \
@@ -250,8 +252,8 @@ StormCash is an **early-stage prototype** built for architectural exploration an
 - **Not a production financial service** — does not hold, transmit, or manage real money
 - **Not connected to real banking rails** — deposits, withdrawals, and transfers are simulated
 - **Blockchain settlement is simulated** — StormChain is a mock network with no real-world connectivity
-- **Registration is API-only** — the UI login page exists; account creation requires a direct API call
-- **Transfers are same-user only** — cross-user peer-to-peer transfers are not yet implemented
+- **Registration is available** — at `/register` in the UI; account number shown immediately after signup
+- **Transfers work between any two accounts** — sender must own the source account; destination can be any valid StormCash account number
 
 The engineering decisions are real: the double-entry ledger, the row-level concurrency locks, the JWT architecture, the settlement state machine. The money movement is not.
 
