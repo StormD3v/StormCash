@@ -1,18 +1,38 @@
 /*
-  TEMPLATE STYLES: These styles are used as a base template.
-  AI is allowed to modify these styles as needed.
+  STORMCASH DESIGN SYSTEM
+  Fonts: Fraunces (display), Inter (body), JetBrains Mono (code)
+  Colors: see tailwind.config.js
 */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────
+   Base
+───────────────────────────────────────────── */
 body {
     font-family: "Inter", sans-serif;
     overflow-x: clip;
     background-color: #12151c;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
+/* Remove default number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* ─────────────────────────────────────────────
+   Typography utilities
+───────────────────────────────────────────── */
 @layer utilities {
     .font-display {
         font-family: "Fraunces", serif;
@@ -25,8 +45,46 @@ body {
     .text-balance {
         text-wrap: balance;
     }
+
+    /* Section label style — used for "Recent Activity", "Quick Actions" etc. */
+    .label-section {
+        font-size: 0.6875rem;
+        /* 11px */
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #96958f;
+        /* text-mid */
+    }
 }
 
+/* ─────────────────────────────────────────────
+   Shimmer skeleton animation
+───────────────────────────────────────────── */
+@keyframes shimmer {
+    0% {
+        background-position: -400px 0;
+    }
+
+    100% {
+        background-position: 400px 0;
+    }
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg,
+            #1e2330 0%,
+            #252b3b 40%,
+            #2a3044 50%,
+            #252b3b 60%,
+            #1e2330 100%);
+    background-size: 800px 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────
+   Marquee (used on HomePage ticker)
+───────────────────────────────────────────── */
 @keyframes marquee {
     from {
         transform: translateX(0);
@@ -41,6 +99,9 @@ body {
     animation: marquee 28s linear infinite;
 }
 
+/* ─────────────────────────────────────────────
+   Flicker (used on HomePage hero)
+───────────────────────────────────────────── */
 @keyframes flicker {
 
     0%,
@@ -65,11 +126,52 @@ body {
     animation: flicker 4s ease-in-out infinite;
 }
 
+/* ─────────────────────────────────────────────
+   Focus ring — consistent across all interactive elements
+───────────────────────────────────────────── */
+@layer base {
+    :focus-visible {
+        outline: 2px solid #d9a35c;
+        outline-offset: 2px;
+        border-radius: 6px;
+    }
+}
+
+/* ─────────────────────────────────────────────
+   Scrollbar styling — subtle, on-brand
+───────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(74, 85, 104, 0.5);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(118, 136, 168, 0.7);
+}
+
+/* ─────────────────────────────────────────────
+   Reduced motion
+───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
 
     .animate-marquee,
-    .animate-flicker {
+    .animate-flicker,
+    .skeleton-shimmer {
         animation: none;
+    }
+
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
     }
 }
 
@@ -81,6 +183,44 @@ body {
     :root {
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 0 0% 98%;
-        --radius: 0.5rem;
+        /* Radius scale: 12px base → feels premium, not chunky */
+        --radius: 0.75rem;
+    }
+}
+
+/* ─────────────────────────────────────────────
+   Card elevation system — three tiers
+   ground (bg) → panel (card) → raised (hover/modal)
+───────────────────────────────────────────── */
+@layer utilities {
+
+    /* Tier 1: ambient separation */
+    .shadow-card {
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.35),
+            0 4px 12px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    /* Tier 2: hovered / focused card */
+    .shadow-card-raised {
+        box-shadow:
+            0 1px 3px rgba(0, 0, 0, 0.4),
+            0 8px 24px rgba(0, 0, 0, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    /* Tier 3: glow accent (balance hero) */
+    .shadow-glow-blue {
+        box-shadow:
+            0 0 0 1px rgba(59, 130, 246, 0.25),
+            0 4px 24px rgba(59, 130, 246, 0.18),
+            0 12px 48px rgba(59, 130, 246, 0.12);
+    }
+
+    .shadow-glow-gold {
+        box-shadow:
+            0 0 0 1px rgba(217, 163, 92, 0.2),
+            0 4px 16px rgba(217, 163, 92, 0.12);
     }
 }

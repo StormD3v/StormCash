@@ -1,95 +1,108 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
 
+// ─── Stage definitions (module-level constant) ────────────────────────────────
+const STAGES = [
+  { key: 'INITIATED', label: 'Initiated' },
+  { key: 'CONVERTING_TO_TOKEN', label: 'Converting to Token' },
+  { key: 'MINTING_TOKEN', label: 'Minting Token' },
+  { key: 'BROADCASTING', label: 'Broadcasting' },
+  { key: 'WAITING_CONFIRMATION', label: 'Confirming' },
+  { key: 'CONFIRMED', label: 'Confirmed' },
+  { key: 'CONVERTING_TO_FIAT', label: 'Converting to Fiat' },
+  { key: 'DEPOSITED', label: 'Deposited' },
+];
+
+// ─── SettlementTimeline ───────────────────────────────────────────────────────
 const SettlementTimeline = ({ settlementStage, confirmationCount = 0 }) => {
-  const stages = [
-    { key: 'INITIATED', label: 'Initiated', shortLabel: 'Initiated' },
-    { key: 'CONVERTING_TO_TOKEN', label: 'Converting to StormChain', shortLabel: 'Converting' },
-    { key: 'MINTING_TOKEN', label: 'Minting Token', shortLabel: 'Minting' },
-    { key: 'BROADCASTING', label: 'Broadcasting', shortLabel: 'Broadcasting' },
-    { key: 'WAITING_CONFIRMATION', label: 'Waiting Confirmations', shortLabel: 'Confirming' },
-    { key: 'CONFIRMED', label: 'Confirmed', shortLabel: 'Confirmed' },
-    { key: 'CONVERTING_TO_FIAT', label: 'Converting Back', shortLabel: 'Converting' },
-    { key: 'DEPOSITED', label: 'Deposited', shortLabel: 'Deposited' },
-  ];
+  const currentIndex = STAGES.findIndex((s) => s.key === settlementStage);
 
-  const stageIndex = stages.findIndex(s => s.key === settlementStage);
-  const currentStageIndex = stageIndex >= 0 ? stageIndex : -1;
-
-  const getStageStatus = (index) => {
-    if (index < currentStageIndex) return 'completed';
-    if (index === currentStageIndex) return 'current';
+  const getStatus = (index) => {
+    if (index < currentIndex) return 'completed';
+    if (index === currentIndex) return 'current';
     return 'pending';
   };
 
   return (
-    <div className="w-full">
-      <h3 className="font-display text-lg font-semibold mb-6 text-text-hi">
+    <div className="w-full" role="status" aria-label={`Settlement stage: ${settlementStage || 'pending'}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-text-mid mb-4">
         Settlement Progress
-      </h3>
+      </p>
 
       <div className="relative">
-        {/* Vertical connecting line */}
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-storm-dim" />
+        {/* Vertical line */}
+        <div
+          className="absolute left-[9px] top-0 bottom-0 w-px bg-storm-dim/60"
+          aria-hidden="true"
+        />
 
-        {/* Stages */}
-        <div className="space-y-4">
-          {stages.map((stage, index) => {
-            const status = getStageStatus(index);
-            const isCurrent = status === 'current';
+        <div className="space-y-3">
+          {STAGES.map((stage, index) => {
+            const status = getStatus(index);
             const isCompleted = status === 'completed';
+            const isCurrent = status === 'current';
 
             return (
               <motion.div
                 key={stage.key}
-                className="relative pl-10"
-                initial={{ opacity: 0, x: -20 }}
+                className="relative pl-8 flex items-center justify-between"
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.4 }}
-                whileHover={{ x: 2 }}
-                transition={{ type: 'spring', stiffness: 300 }}
+                /* Single, correct transition — no duplicate */
+                transition={{ delay: index * 0.07, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               >
                 {/* Stage node */}
                 <div
-                  className={`absolute left-2 top-0 w-4 h-4 rounded-full border-2 flex items-center justify-center text-xs z-10 ${
+                  className={[
+                    'absolute left-0 w-[18px] h-[18px] rounded-full border-2',
+                    'flex items-center justify-center z-10 text-[9px]',
                     isCompleted
                       ? 'bg-gold border-gold text-ground'
                       : isCurrent
-                      ? 'bg-gold border-gold text-white shadow-lg shadow-gold/30'
-                      : 'bg-ground border-storm-dim text-text-low'
-                  }`}
+                        ? 'bg-gold/20 border-gold text-gold'
+                        : 'bg-ground border-storm-dim/60',
+                  ].join(' ')}
+                  aria-hidden="true"
                 >
-                  {isCompleted ? '✓' : ''}
-                </div>
-
-                {/* Stage label */}
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`font-medium text-sm ${
-                      isCurrent
-                        ? 'text-gold'
-                        : isCompleted
-                        ? 'text-text-hi'
-                        : 'text-text-low'
-                    }`}
-                  >
-                    {stage.label}
-                  </span>
-
-                  {stage.key === 'WAITING_CONFIRMATION' && confirmationCount > 0 && (
-                    <div className="text-xs text-text-mid">
-                      {confirmationCount} / 12 confirmations
-                    </div>
+                  {isCompleted && <Check size={9} strokeWidth={3} />}
+                  {isCurrent && (
+                    <motion.div
+                      className="w-1.5 h-1.5 rounded-full bg-gold"
+                      animate={{ scale: [1, 1.4, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    />
                   )}
                 </div>
 
-                {/* Current stage glow effect */}
+                {/* Glow behind current node */}
                 {isCurrent && (
-                  <motion.div
-                    className="absolute left-2 top-0 w-4 h-4 rounded-full bg-gold opacity-50 blur-md"
-                    animate={{ scale: [1, 1.5, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                  <div
+                    className="absolute left-[-3px] w-6 h-6 rounded-full bg-gold/20 blur-sm"
+                    aria-hidden="true"
                   />
+                )}
+
+                {/* Stage label */}
+                <span
+                  className={[
+                    'text-xs transition-colors duration-200',
+                    isCurrent ? 'text-gold font-medium' :
+                      isCompleted ? 'text-text-hi' :
+                        'text-text-low',
+                  ].join(' ')}
+                >
+                  {stage.label}
+                  {stage.key === 'WAITING_CONFIRMATION' && isCurrent && confirmationCount > 0 && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] bg-gold/10 text-gold border border-gold/20 tabular-nums">
+                      {confirmationCount}/12
+                    </span>
+                  )}
+                </span>
+
+                {/* Checkmark on right for completed */}
+                {isCompleted && (
+                  <span className="text-[10px] text-text-low" aria-hidden="true">✓</span>
                 )}
               </motion.div>
             );
@@ -97,17 +110,18 @@ const SettlementTimeline = ({ settlementStage, confirmationCount = 0 }) => {
         </div>
       </div>
 
-      {/* Settlement complete message */}
+      {/* Complete banner */}
       {settlementStage === 'DEPOSITED' && (
         <motion.div
-          className="mt-6 p-4 rounded-xl border border-gold/30 bg-gold/10 text-center"
-          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+          className="mt-5 px-4 py-3.5 rounded-xl border border-gold/25 bg-gold/8 text-center"
+          initial={{ opacity: 0, y: 8, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+          role="status"
+          aria-live="polite"
         >
-          <div className="text-2xl mb-2">✅</div>
-          <p className="font-medium text-gold">Settlement Complete</p>
-          <p className="text-sm text-text-mid mt-1">Funds have been delivered to the recipient</p>
+          <p className="text-sm font-semibold text-gold">Settlement Complete</p>
+          <p className="text-xs text-text-mid mt-0.5">Funds delivered to recipient</p>
         </motion.div>
       )}
     </div>

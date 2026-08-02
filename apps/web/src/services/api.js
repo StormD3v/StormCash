@@ -147,7 +147,10 @@ export const fastAPI = {
         amount: amount,
       }),
     });
-    if (!response.ok) throw new Error('Transfer failed');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Transfer failed');
+    }
     return response.json();
   },
 
@@ -156,7 +159,10 @@ export const fastAPI = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     });
-    if (!response.ok) throw new Error('Deposit failed');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Deposit failed');
+    }
     return response.json();
   },
 
@@ -165,13 +171,19 @@ export const fastAPI = {
       method: 'POST',
       body: JSON.stringify({ amount }),
     });
-    if (!response.ok) throw new Error('Withdrawal failed');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Withdrawal failed');
+    }
     return response.json();
   },
 
   async getSettlementDetails(transactionId) {
     const response = await fastAPIRequest(`/api/settlement/${transactionId}`);
-    if (!response.ok) throw new Error('Failed to fetch settlement details');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to fetch settlement details');
+    }
     return response.json();
   },
 
@@ -179,7 +191,10 @@ export const fastAPI = {
     const response = await fastAPIRequest(`/api/settlement/process/${transactionId}`, {
       method: 'POST',
     });
-    if (!response.ok) throw new Error('Failed to process settlement');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to process settlement');
+    }
     return response.json();
   },
 };

@@ -1,9 +1,22 @@
-# Dependencies
+# ── Node ──────────────────────────────────────────────────────────────────────
 node_modules/
 .pnp
 .pnp.js
 
-# Python
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+
+# ── Environment variables ─────────────────────────────────────────────────────
+# Committed: .env.example (safe placeholder values only)
+# Never commit: actual .env files
+.env
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,45 +26,43 @@ venv/
 env/
 ENV/
 .venv/
+.pytest_cache/
 
-# Build outputs
-dist/
-build/
-.next/
-out/
+# ── Debug and credential artifacts ───────────────────────────────────────────
+# These patterns catch debug dumps before they can be committed accidentally
+debug_login.txt
+check_db.py
+create_second_account.py
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# IDE
+# ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# Logs
+# ── Logs ──────────────────────────────────────────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+*.log
 
-# Cache
+# ── Cache ─────────────────────────────────────────────────────────────────────
 .cache/
 .parcel-cache/
 .eslintcache
-
-# Vite
 .vite/
 
-# Temporary files
+# ── Coverage ──────────────────────────────────────────────────────────────────
+coverage/
+htmlcov/
+.coverage
+
+# ── Temporary files ───────────────────────────────────────────────────────────
 *.tmp
 *.temp

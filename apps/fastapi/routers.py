@@ -137,6 +137,47 @@ async def transfer(
             detail=f"Transfer failed: {str(e)}"
         )
 
+def auto_advance_pending_transactions(account: Account, db: Session):
+    pending_txs = db.execute(
+        select(Transaction).where(
+            Transaction.status == TransactionStatus.PENDING,
+            Transaction.transaction_type == TransactionType.TRANSFER,
+            (Transaction.from_account_number == account.account_number) |
+            (Transaction.to_account_number == account.account_number)
+        )
+    ).scalars().all()
+    
+    if pending_txs:
+        settlement_engine = SettlementEngine(db)
+        for tx in pending_txs:
+            current_stage = settlement_engine.advance_settlement_stage(tx)
+            if current_stage == "DEPOSITED" and tx.status == TransactionStatus.COMPLETED:
+                to_acc = db.execute(
+                    select(Account).where(Account.account_number == tx.to_account_number)
+                ).scalar_one_or_none()
+                if to_acc:
+                    # Check if credit entry already exists
+                    existing_credit = db.execute(
+                        select(LedgerEntry).where(
+                            LedgerEntry.transaction_id == tx.id,
+                            LedgerEntry.account_id == to_acc.id,
+                            LedgerEntry.entry_type == EntryType.CREDIT
+                        )
+                    ).scalar_one_or_none()
+                    if not existing_credit:
+                        final_amount = settlement_engine.blockchain.convert_token_to_fiat(
+                            tx.blockchain_amount or Decimal("0"),
+                            tx.gas_fee or Decimal("0")
+                        )
+                        credit_entry = LedgerEntry(
+                            transaction_id=tx.id,
+                            account_id=to_acc.id,
+                            amount=final_amount,
+                            entry_type=EntryType.CREDIT
+                        )
+                        db.add(credit_entry)
+        db.commit()
+
 @router.get("/balance/{account_number}", response_model=BalanceResponse)
 async def get_balance(
     account_number: str,
@@ -159,6 +200,8 @@ async def get_balance(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account does not belong to authenticated user"
         )
+    
+    auto_advance_pending_transactions(account, db)
     
     # Calculate balance from ledger entries
     entries = db.execute(
@@ -200,6 +243,8 @@ async def get_history(
             detail="Account does not belong to authenticated user"
         )
     
+    auto_advance_pending_transactions(account, db)
+    
     # Get all ledger entries for this account
     entries = db.execute(
         select(LedgerEntry).where(LedgerEntry.account_id == account.id)
@@ -208,14 +253,16 @@ async def get_history(
     # Get unique transactions and their amounts
     transaction_ids = set(entry.transaction_id for entry in entries)
     transactions = db.execute(
-        select(Transaction).where(Transaction.id.in_(transaction_ids))
+        select(Transaction).where(Transaction.id.in_(transaction_ids)).order_by(Transaction.created_at.desc())
     ).scalars().all()
     
-    # Build a map of transaction_id to amount for this account
+    # Build a map of transaction_id to amount and direction for this account
     transaction_amounts = {}
+    transaction_directions = {}
     for entry in entries:
         if entry.transaction_id not in transaction_amounts:
             transaction_amounts[entry.transaction_id] = entry.amount
+            transaction_directions[entry.transaction_id] = "credit" if entry.entry_type == EntryType.CREDIT else "debit"
     
     return HistoryResponse(
         transactions=[
@@ -234,7 +281,8 @@ async def get_history(
                 gas_fee=t.gas_fee,
                 blockchain_amount=t.blockchain_amount,
                 network_name=t.network_name,
-                settlement_time=t.settlement_time
+                settlement_time=t.settlement_time,
+                direction=transaction_directions.get(t.id)
             )
             for t in transactions
         ]

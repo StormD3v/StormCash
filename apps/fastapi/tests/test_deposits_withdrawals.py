@@ -15,6 +15,25 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "postgresql://stormcash:storm
 
 # Create test engine
 test_engine = create_engine(TEST_DATABASE_URL)
+from sqlalchemy import text
+with test_engine.connect() as conn:
+    for col, col_type in [
+        ("settlement_stage", "VARCHAR(50)"),
+        ("blockchain_tx_hash", "VARCHAR(66)"),
+        ("block_number", "INTEGER"),
+        ("confirmation_count", "INTEGER DEFAULT 0"),
+        ("gas_fee", "NUMERIC(19, 6)"),
+        ("blockchain_amount", "NUMERIC(19, 6)"),
+        ("network_name", "VARCHAR(50) DEFAULT 'StormChain'"),
+        ("settlement_time", "TIMESTAMP"),
+        ("from_account_number", "VARCHAR(12)"),
+        ("to_account_number", "VARCHAR(12)")
+    ]:
+        try:
+            conn.execute(text(f"ALTER TABLE transactions ADD COLUMN IF NOT EXISTS {col} {col_type}"))
+        except Exception:
+            pass
+    conn.commit()
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 # Override the database dependency

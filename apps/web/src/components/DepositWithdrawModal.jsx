@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowUpRight, Link2, Loader2, Lock } from 'lucide-react';
-import SettlementTimeline from './SettlementTimeline';
+import { X, ArrowDownLeft, ArrowUpFromLine, Loader2, Lock } from 'lucide-react';
 import SuccessAnimation from './SuccessAnimation';
-import CopyableText from './CopyableText';
 import { fastAPI } from '../services/api';
 
 // ─── Animation presets ────────────────────────────────────────────────────────
@@ -56,34 +54,37 @@ const ErrorMessage = ({ message }) => (
   </motion.div>
 );
 
-// ─── TransferModal ────────────────────────────────────────────────────────────
+// ─── DepositWithdrawModal ────────────────────────────────────────────────────
 
-const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComplete }) => {
+const DepositWithdrawModal = ({
+  isOpen,
+  onClose,
+  action,
+  accountNumber,
+  currentBalance,
+  onComplete,
+}) => {
   const [step, setStep] = useState('input');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [transaction, setTransaction] = useState(null);
-  const [settlementStage, setSettlementStage] = useState(null);
-  const [confirmationCount, setConfirmationCount] = useState(0);
+
+  const isDeposit = action === 'deposit';
 
   const titleId = useId();
   const amountId = useId();
-  const fromId = useId();
-  const toId = useId();
+  const acctId = useId();
+  const balanceId = useId();
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleClose = useCallback(() => {
     setStep('input');
     setAmount('');
     setError(null);
-    setTransaction(null);
-    setSettlementStage(null);
-    setConfirmationCount(0);
     onClose();
   }, [onClose]);
 
-  const handleTransfer = useCallback(async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (loading) return;
 
@@ -92,72 +93,55 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
       setError('Please enter a valid positive amount.');
       return;
     }
+    if (!isDeposit && parsedAmount > currentBalance) {
+      setError(`Insufficient funds. Available: $${currentBalance.toFixed(2)}`);
+      return;
+    }
 
     setError(null);
     setLoading(true);
     try {
-      const response = await fastAPI.transfer(fromAccount, toAccount, parsedAmount);
-      setTransaction(response);
-      setSettlementStage(response.settlement_stage);
-      setStep('processing');
+      if (isDeposit) {
+        await fastAPI.deposit(accountNumber, parsedAmount);
+      } else {
+        await fastAPI.withdraw(accountNumber, parsedAmount);
+      }
+      setStep('complete');
+      onComplete?.();
     } catch (err) {
-      setError(err.message || 'Transfer failed. Please try again.');
+      setError(err.message || `${isDeposit ? 'Deposit' : 'Withdrawal'} failed. Please try again.`);
     } finally {
       setLoading(false);
     }
-  }, [loading, amount, fromAccount, toAccount]);
+  }, [loading, amount, isDeposit, currentBalance, accountNumber, onComplete]);
 
-  // ── Escape key handler ───────────────────────────────────────────────────
+  // ── Escape key ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e) => {
-      if (e.key === 'Escape' && step !== 'processing') handleClose();
+      if (e.key === 'Escape' && !loading) handleClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, step, handleClose]);
+  }, [isOpen, loading, handleClose]);
 
   // ── Prevent background scroll ────────────────────────────────────────────
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    }
+    if (isOpen) document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
-  // ── Settlement polling ───────────────────────────────────────────────────
-  useEffect(() => {
-    let interval;
-    if (step === 'processing' && transaction) {
-      interval = setInterval(async () => {
-        try {
-          const updated = await fastAPI.processSettlement(transaction.id);
-          setSettlementStage(updated.settlement_stage);
-          setConfirmationCount(updated.confirmation_count || 0);
-
-          if (updated.settlement_stage === 'DEPOSITED') {
-            setStep('complete');
-            onTransferComplete?.();
-            clearInterval(interval);
-          } else if (updated.settlement_stage === 'FAILED') {
-            setError('Settlement failed on the blockchain.');
-            setStep('input');
-            clearInterval(interval);
-          }
-        } catch (err) {
-          console.error('Settlement polling error:', err);
-          setError(err.message || 'Settlement processing failed.');
-          setStep('input');
-          clearInterval(interval);
-        }
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [step, transaction, onTransferComplete]);
-
   if (!isOpen) return null;
 
-  const isProcessing = step === 'processing';
+  // Per-action theming
+  const ActionIcon = isDeposit ? ArrowDownLeft : ArrowUpFromLine;
+  const iconColor = isDeposit ? 'text-[#7dc9a0]' : 'text-[#c08090]';
+  const iconBg = isDeposit ? 'bg-[#7dc9a0]/10' : 'bg-[#c08090]/10';
+  const btnClass = isDeposit
+    ? 'bg-gold text-ground hover:bg-gold-dim'
+    : 'bg-gold/80 text-ground hover:bg-gold';
+  const summaryBg = isDeposit ? 'bg-[#7dc9a0]/8 border-[#7dc9a0]/20' : 'bg-[#c08090]/8 border-[#c08090]/20';
+  const summaryColor = isDeposit ? 'text-[#7dc9a0]' : 'text-[#c08090]';
 
   return (
     <AnimatePresence>
@@ -165,8 +149,7 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
       <motion.div
         className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
         style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }}
-        onClick={(e) => { if (!isProcessing && e.target === e.currentTarget) handleClose(); }}
-        aria-hidden="false"
+        onClick={(e) => { if (!loading && e.target === e.currentTarget) handleClose(); }}
         {...BACKDROP_ANIM}
       >
         {/* Panel */}
@@ -178,36 +161,25 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
           onClick={(e) => e.stopPropagation()}
           {...PANEL_ANIM}
         >
-          {/* Processing overlay bar */}
-          {isProcessing && (
-            <div className="h-0.5 bg-storm-dim overflow-hidden">
-              <motion.div
-                className="h-full bg-gold"
-                animate={{ x: ['-100%', '200%'] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </div>
-          )}
-
           <div className="p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-gold/10 flex items-center justify-center" aria-hidden="true">
-                  <ArrowUpRight size={14} className="text-gold" />
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${iconBg}`} aria-hidden="true">
+                  <ActionIcon size={14} className={iconColor} />
                 </div>
                 <h2
                   id={titleId}
                   className="font-display text-lg font-semibold text-text-hi"
                 >
-                  {step === 'input' ? 'Transfer Funds' : step === 'processing' ? 'Settlement in Progress' : 'Transfer Complete'}
+                  {isDeposit ? 'Deposit Funds' : 'Withdraw Funds'}
                 </h2>
               </div>
               <button
                 onClick={handleClose}
-                disabled={isProcessing}
+                disabled={loading}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-text-mid hover:text-text-hi hover:bg-storm-dim/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
-                aria-label="Close transfer modal"
+                aria-label={`Close ${isDeposit ? 'deposit' : 'withdraw'} modal`}
                 type="button"
               >
                 <X size={14} strokeWidth={2} aria-hidden="true" />
@@ -216,17 +188,27 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
 
             {/* ── Input Step ─────────────────────────────────────────────── */}
             {step === 'input' && (
-              <form onSubmit={handleTransfer} noValidate>
+              <form onSubmit={handleSubmit} noValidate>
                 <div className="space-y-4">
                   <div>
-                    <FieldLabel htmlFor={fromId}>From Account</FieldLabel>
-                    <ReadonlyField id={fromId} value={fromAccount} />
+                    <FieldLabel htmlFor={acctId}>Account Number</FieldLabel>
+                    <ReadonlyField id={acctId} value={accountNumber} />
                   </div>
 
-                  <div>
-                    <FieldLabel htmlFor={toId}>To Account</FieldLabel>
-                    <ReadonlyField id={toId} value={toAccount} />
-                  </div>
+                  {!isDeposit && (
+                    <div>
+                      <FieldLabel htmlFor={balanceId}>Available Balance</FieldLabel>
+                      <div
+                        id={balanceId}
+                        className="flex items-center justify-between px-4 py-3 rounded-lg bg-ground/60 border border-storm-dim/60"
+                      >
+                        <span className="font-display text-sm font-semibold text-text-hi tabular-nums">
+                          ${currentBalance.toFixed(2)}
+                        </span>
+                        <Lock size={12} className="text-text-low" aria-hidden="true" />
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <FieldLabel htmlFor={amountId}>Amount (USD)</FieldLabel>
@@ -238,6 +220,7 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
                         inputMode="decimal"
                         step="0.01"
                         min="0.01"
+                        max={!isDeposit ? currentBalance : undefined}
                         value={amount}
                         onChange={(e) => { setAmount(e.target.value); setError(null); }}
                         className="w-full pl-8 pr-4 py-3 rounded-lg bg-ground border border-storm-dim text-text-hi placeholder:text-text-low focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/30 transition-colors text-xl font-display"
@@ -254,7 +237,7 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
                   <motion.button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 rounded-lg bg-gold text-ground font-semibold text-sm hover:bg-gold-dim transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-panel"
+                    className={`w-full py-3 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-panel ${btnClass}`}
                     whileHover={!loading ? { scale: 1.015 } : {}}
                     whileTap={!loading ? { scale: 0.985 } : {}}
                   >
@@ -265,8 +248,8 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
                       </>
                     ) : (
                       <>
-                        <ArrowUpRight size={15} aria-hidden="true" />
-                        Initiate Transfer
+                        <ActionIcon size={15} aria-hidden="true" />
+                        {isDeposit ? 'Deposit Funds' : 'Withdraw Funds'}
                       </>
                     )}
                   </motion.button>
@@ -274,54 +257,25 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
               </form>
             )}
 
-            {/* ── Processing Step ────────────────────────────────────────── */}
-            {step === 'processing' && (
-              <div className="space-y-6">
-                <div className="text-center py-2">
-                  <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-3">
-                    <Link2 size={20} className="text-gold" aria-hidden="true" />
-                  </div>
-                  <p className="text-sm font-medium text-text-hi">Blockchain Settlement</p>
-                  <p className="text-xs text-text-mid mt-1 max-w-[260px] mx-auto">
-                    Your transfer is being processed through the StormChain network
-                  </p>
-                </div>
-
-                <SettlementTimeline
-                  settlementStage={settlementStage}
-                  confirmationCount={confirmationCount}
-                />
-
-                {transaction?.blockchain_tx_hash && (
-                  <div className="px-4 py-3.5 rounded-lg bg-storm-dim/10 border border-storm-dim">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-text-mid mb-2">
-                      Transaction Hash
-                    </p>
-                    <CopyableText
-                      value={transaction.blockchain_tx_hash}
-                      maxLength={12}
-                      className="text-text-hi"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* ── Complete Step ──────────────────────────────────────────── */}
             {step === 'complete' && (
               <div className="space-y-5">
                 <div className="text-center py-2">
                   <SuccessAnimation />
-                  <p className="text-base font-semibold text-text-hi mt-4">Transfer Complete</p>
+                  <p className="text-base font-semibold text-text-hi mt-4">
+                    {isDeposit ? 'Deposit Complete' : 'Withdrawal Complete'}
+                  </p>
                   <p className="text-xs text-text-mid mt-1">
-                    Funds have been successfully delivered
+                    Your account balance has been updated
                   </p>
                 </div>
 
-                <div className="px-4 py-3.5 rounded-lg bg-gold/8 border border-gold/20">
+                <div className={`px-4 py-3.5 rounded-lg border ${summaryBg}`}>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-text-mid uppercase tracking-wide">Amount Sent</span>
-                    <span className="font-display font-semibold text-gold text-base tabular-nums">
+                    <span className="text-xs font-medium text-text-mid uppercase tracking-wide">
+                      {isDeposit ? 'Amount Deposited' : 'Amount Withdrawn'}
+                    </span>
+                    <span className={`font-display font-semibold text-base tabular-nums ${summaryColor}`}>
                       ${parseFloat(amount).toFixed(2)}
                     </span>
                   </div>
@@ -345,4 +299,4 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
   );
 };
 
-export default TransferModal;
+export default DepositWithdrawModal;

@@ -31,6 +31,7 @@ class TransactionResponse(BaseModel):
     blockchain_amount: Optional[Decimal] = None
     network_name: Optional[str] = None
     settlement_time: Optional[datetime] = None
+    direction: Optional[str] = None
 
 class LedgerEntryResponse(BaseModel):
     id: UUID

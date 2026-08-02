@@ -15,6 +15,25 @@ TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "postgresql://stormcash:storm
 
 # Create test engine
 test_engine = create_engine(TEST_DATABASE_URL)
+from sqlalchemy import text
+with test_engine.connect() as conn:
+    for col, col_type in [
+        ("settlement_stage", "VARCHAR(50)"),
+        ("blockchain_tx_hash", "VARCHAR(66)"),
+        ("block_number", "INTEGER"),
+        ("confirmation_count", "INTEGER DEFAULT 0"),
+        ("gas_fee", "NUMERIC(19, 6)"),
+        ("blockchain_amount", "NUMERIC(19, 6)"),
+        ("network_name", "VARCHAR(50) DEFAULT 'StormChain'"),
+        ("settlement_time", "TIMESTAMP"),
+        ("from_account_number", "VARCHAR(12)"),
+        ("to_account_number", "VARCHAR(12)")
+    ]:
+        try:
+            conn.execute(text(f"ALTER TABLE transactions ADD COLUMN IF NOT EXISTS {col} {col_type}"))
+        except Exception:
+            pass
+    conn.commit()
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 # Override the database dependency
@@ -163,7 +182,7 @@ class TestTransferEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["transaction_type"] == "TRANSFER"
-        assert data["status"] == "COMPLETED"
+        assert data["status"] == "PENDING"
         
         # Check balances
         acc1_entries = db_session.execute(
@@ -175,14 +194,42 @@ class TestTransferEndpoints:
         )
         assert acc1_balance == 500.00  # 1000 - 500
         
-        acc2_entries = db_session.execute(
+        acc2_entries_before = db_session.execute(
             select(LedgerEntry).where(LedgerEntry.account_id == acc2.id)
         ).scalars().all()
-        acc2_balance = sum(
+        acc2_balance_before = sum(
             entry.amount if entry.entry_type == EntryType.CREDIT else -entry.amount
-            for entry in acc2_entries
+            for entry in acc2_entries_before
         )
-        assert acc2_balance == 500.00  # 0 + 500
+        assert acc2_balance_before == 0.00
+        
+        # Fast forward time to simulate settlement delay completion
+        from datetime import datetime, timedelta
+        from uuid import UUID
+        from models import Transaction
+        
+        tx_id = data["id"]
+        db_tx = db_session.query(Transaction).filter(Transaction.id == UUID(tx_id)).first()
+        db_tx.created_at = datetime.utcnow() - timedelta(seconds=10)
+        db_session.commit()
+        
+        # Process settlement
+        process_response = client.post(f"/api/settlement/process/{tx_id}", headers=auth_headers)
+        assert process_response.status_code == 200
+        process_data = process_response.json()
+        assert process_data["status"] == "COMPLETED"
+        assert process_data["settlement_stage"] == "DEPOSITED"
+        
+        # Check destination balance after gas fees (500 - 0.50 = 499.50)
+        db_session.expire_all()
+        acc2_entries_after = db_session.execute(
+            select(LedgerEntry).where(LedgerEntry.account_id == acc2.id)
+        ).scalars().all()
+        acc2_balance_after = sum(
+            entry.amount if entry.entry_type == EntryType.CREDIT else -entry.amount
+            for entry in acc2_entries_after
+        )
+        assert float(acc2_balance_after) == 499.50
     
     def test_transfer_insufficient_funds(self, client, test_accounts, auth_headers):
         """Test that transfer with insufficient funds returns 400"""

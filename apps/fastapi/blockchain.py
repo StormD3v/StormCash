@@ -192,20 +192,29 @@ class SettlementEngine:
 
     def get_settlement_details(self, transaction) -> Dict[str, Any]:
         """Get detailed settlement information for a transaction."""
+        from decimal import Decimal
+        
+        blockchain_amount = transaction.blockchain_amount
+        if blockchain_amount is None and transaction.ledger_entries:
+            blockchain_amount = transaction.ledger_entries[0].amount
+
         final_amount = self.blockchain.convert_token_to_fiat(
-            transaction.blockchain_amount or Decimal("0"),
+            blockchain_amount or Decimal("0"),
             transaction.gas_fee or Decimal("0")
         )
+
+        tx_type = transaction.transaction_type.value if hasattr(transaction.transaction_type, 'value') else str(transaction.transaction_type)
 
         return {
             "transaction_id": str(transaction.id),
             "reference_id": transaction.reference_id,
+            "transaction_type": tx_type,
             "blockchain_tx_hash": transaction.blockchain_tx_hash,
             "block_number": transaction.block_number,
             "confirmation_count": transaction.confirmation_count,
             "gas_fee": float(transaction.gas_fee) if transaction.gas_fee else 0,
-            "blockchain_amount": float(transaction.blockchain_amount) if transaction.blockchain_amount else 0,
-            "fiat_amount": float(final_amount),
+            "blockchain_amount": float(blockchain_amount) if blockchain_amount else 0,
+            "fiat_amount": float(blockchain_amount) if tx_type in ["DEPOSIT", "WITHDRAWAL"] else float(final_amount),
             "network_name": transaction.network_name,
             "settlement_stage": transaction.settlement_stage.value if transaction.settlement_stage else None,
             "settlement_time": transaction.settlement_time.isoformat() if transaction.settlement_time else None,
