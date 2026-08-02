@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowDownLeft, ArrowUpFromLine, Loader2, Lock } from 'lucide-react';
 import SuccessAnimation from './SuccessAnimation';
 import { fastAPI } from '../services/api';
+import { formatCurrencyCompact } from '../lib/currency';
 
 // ─── Animation presets ────────────────────────────────────────────────────────
 const BACKDROP_ANIM = {
@@ -94,7 +95,7 @@ const DepositWithdrawModal = ({
       return;
     }
     if (!isDeposit && parsedAmount > currentBalance) {
-      setError(`Insufficient funds. Available: $${currentBalance.toFixed(2)}`);
+      setError(`Insufficient funds. Available: ${formatCurrencyCompact(currentBalance)}`);
       return;
     }
 
@@ -203,7 +204,7 @@ const DepositWithdrawModal = ({
                         className="flex items-center justify-between px-4 py-3 rounded-lg bg-ground/60 border border-storm-dim/60"
                       >
                         <span className="font-display text-sm font-semibold text-text-hi tabular-nums">
-                          ${currentBalance.toFixed(2)}
+                          {formatCurrencyCompact(currentBalance)}
                         </span>
                         <Lock size={12} className="text-text-low" aria-hidden="true" />
                       </div>
@@ -276,7 +277,7 @@ const DepositWithdrawModal = ({
                       {isDeposit ? 'Amount Deposited' : 'Amount Withdrawn'}
                     </span>
                     <span className={`font-display font-semibold text-base tabular-nums ${summaryColor}`}>
-                      ${parseFloat(amount).toFixed(2)}
+                      {formatCurrencyCompact(parseFloat(amount))}
                     </span>
                   </div>
                 </div>

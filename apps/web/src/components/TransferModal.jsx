@@ -5,6 +5,7 @@ import SettlementTimeline from './SettlementTimeline';
 import SuccessAnimation from './SuccessAnimation';
 import CopyableText from './CopyableText';
 import { fastAPI } from '../services/api';
+import { formatCurrencyCompact } from '../lib/currency';
 
 // ─── Animation presets ────────────────────────────────────────────────────────
 const BACKDROP_ANIM = {
@@ -354,7 +355,7 @@ const TransferModal = ({ isOpen, onClose, fromAccount, onTransferComplete }) => 
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-text-mid uppercase tracking-wide">Amount Sent</span>
                     <span className="font-display font-semibold text-gold text-base tabular-nums">
-                      ${parseFloat(amount).toFixed(2)}
+                      {formatCurrencyCompact(parseFloat(amount))}
                     </span>
                   </div>
                 </div>

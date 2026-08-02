@@ -54,7 +54,7 @@ const AccountSummary = ({ accountNumber = '', balance = 0, onDetailsClick }) => 
       <div className="flex sm:flex-col gap-x-3 gap-y-0.5 items-baseline sm:items-start border-t sm:border-t-0 pt-3 sm:pt-0 border-storm-dim/15 sm:border-l sm:border-storm-dim/15 sm:pl-5">
         <span className="text-[9.5px] font-medium text-text-low uppercase tracking-wider">Checking · USD</span>
         <span className="text-sm font-bold text-text-hi tabular-nums">
-          ${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatCurrencyCompact(balance)}
         </span>
       </div>
 

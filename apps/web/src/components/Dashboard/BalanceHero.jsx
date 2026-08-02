@@ -97,7 +97,7 @@ const BalanceHero = ({ balance = 0, trend = 'stable', accountNumber = '', isMobi
         >
           {obscure
             ? <span className="tracking-widest text-white/60">••••••</span>
-            : `$${displayBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : formatCurrencyCompact(displayBalance)
           }
         </h2>
       </div>

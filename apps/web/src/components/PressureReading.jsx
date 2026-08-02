@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { formatCurrencyCompact } from '../lib/currency';
 
 const PressureReading = ({ balance = 0, trend = 'stable', accountNumber = '' }) => {
   const [displayBalance, setDisplayBalance] = useState(0);
@@ -97,7 +98,7 @@ const PressureReading = ({ balance = 0, trend = 'stable', accountNumber = '' }) 
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          ${displayBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatCurrencyCompact(displayBalance)}
         </motion.div>
         <motion.div
           className="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide uppercase"

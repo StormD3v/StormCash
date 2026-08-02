@@ -169,7 +169,7 @@ const TransactionExplorer = ({ transactionId, onClose }) => {
               <div className="flex justify-between text-xs">
                 <span className="text-text-mid">Sent</span>
                 <span className="text-text-hi tabular-nums font-medium">
-                  ${details.blockchain_amount?.toFixed(2) ?? '0.00'}
+                  {formatCurrencyCompact(details.blockchain_amount ?? 0)}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
@@ -181,7 +181,7 @@ const TransactionExplorer = ({ transactionId, onClose }) => {
               <div className="flex justify-between items-center mt-2 pt-2 border-t border-storm-dim/40">
                 <span className="text-xs font-semibold text-gold uppercase tracking-wide">Recipient Receives</span>
                 <span className="font-display font-semibold text-gold text-base tabular-nums">
-                  ${details.fiat_amount?.toFixed(2) ?? '0.00'}
+                  {formatCurrencyCompact(details.fiat_amount ?? 0)}
                 </span>
               </div>
             </div>
@@ -192,7 +192,7 @@ const TransactionExplorer = ({ transactionId, onClose }) => {
             <div className="mt-3 flex justify-between items-center pt-2 border-t border-storm-dim/40">
               <span className="text-xs font-semibold text-gold uppercase tracking-wide">Amount</span>
               <span className="font-display font-semibold text-gold text-base tabular-nums">
-                ${details.fiat_amount?.toFixed(2) ?? '0.00'}
+                {formatCurrencyCompact(details.fiat_amount ?? 0)}
               </span>
             </div>
           </>

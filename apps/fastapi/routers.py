@@ -521,20 +521,46 @@ async def get_settlement_details(
             detail="Transaction not found"
         )
 
-    # Verify user owns at least one account involved in the transfer
+    # Verify user owns at least one account involved in the transaction
+    # For transfers: check from_account_number or to_account_number
+    # For deposits/withdrawals: check the associated account via ledger entries
+    is_authorized = False
+    
     if transaction.from_account_number:
         from_account = db.execute(
             select(Account).where(Account.account_number ==
                                   transaction.from_account_number)
         ).scalar_one_or_none()
         if from_account and from_account.user_id == current_user.id:
-            pass  # User is authorized
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to view this transaction"
-            )
-
+            is_authorized = True
+    
+    if not is_authorized and transaction.to_account_number:
+        to_account = db.execute(
+            select(Account).where(Account.account_number ==
+                                  transaction.to_account_number)
+        ).scalar_one_or_none()
+        if to_account and to_account.user_id == current_user.id:
+            is_authorized = True
+    
+    # For deposits/withdrawals, check ledger entries to find the associated account
+    if not is_authorized:
+        ledger_entries = db.execute(
+            select(LedgerEntry).where(LedgerEntry.transaction_id == transaction.id)
+        ).scalars().all()
+        
+        for entry in ledger_entries:
+            account = db.execute(
+                select(Account).where(Account.id == entry.account_id)
+            ).scalar_one_or_none()
+            if account and account.user_id == current_user.id:
+                is_authorized = True
+                break
+    
+    if not is_authorized:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view this transaction"
+        )
     # Initialize settlement engine and get details
     settlement_engine = SettlementEngine(db)
     details = settlement_engine.get_settlement_details(transaction)

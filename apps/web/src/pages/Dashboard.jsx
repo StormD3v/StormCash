@@ -16,6 +16,7 @@ import DepositWithdrawModal from '../components/DepositWithdrawModal';
 import { TransactionSkeleton } from '../components/SkeletonLoader';
 import { fastAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { formatCurrencyCompact } from '../lib/currency';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -120,7 +121,7 @@ const Dashboard = () => {
           <span className="text-[9px] text-text-low/70 font-medium uppercase tracking-wider mt-0.5 block">{kpi.label}</span>
         </div>
         <span className="font-display font-black text-text-hi tabular-nums" style={{ fontSize: '1rem', letterSpacing: '-0.015em' }}>
-          ${kpi.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {formatCurrencyCompact(kpi.value)}
         </span>
       </div>
     ));

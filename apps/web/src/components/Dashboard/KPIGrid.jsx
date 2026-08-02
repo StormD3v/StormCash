@@ -75,7 +75,7 @@ const KPIGrid = ({
           {/* Value */}
           <div className="mb-3">
             <h3 className="font-display font-black text-text-hi tracking-tight" style={{ fontSize: '1.5rem', letterSpacing: '-0.02em', lineHeight: 1 }}>
-              ${kpi.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatCurrencyCompact(kpi.value)}
             </h3>
           </div>
 

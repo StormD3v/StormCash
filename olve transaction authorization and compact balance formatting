@@ -1,0 +1,11 @@
+ apps/fastapi/routers.py                            | 42 [32m+++++++++++++++++[m[31m-----[m
+ .../src/components/Dashboard/AccountSummary.jsx    |  2 [32m+[m[31m-[m
+ apps/web/src/components/Dashboard/BalanceHero.jsx  |  2 [32m+[m[31m-[m
+ apps/web/src/components/Dashboard/KPIGrid.jsx      |  2 [32m+[m[31m-[m
+ apps/web/src/components/DepositWithdrawModal.jsx   |  7 [32m++[m[31m--[m
+ apps/web/src/components/PressureReading.jsx        |  3 [32m+[m[31m-[m
+ apps/web/src/components/StormLog.jsx               |  3 [32m+[m[31m-[m
+ apps/web/src/components/TransactionExplorer.jsx    |  6 [32m++[m[31m--[m
+ apps/web/src/components/TransferModal.jsx          |  3 [32m+[m[31m-[m
+ apps/web/src/pages/Dashboard.jsx                   |  3 [32m+[m[31m-[m
+ 10 files changed, 52 insertions(+), 21 deletions(-)

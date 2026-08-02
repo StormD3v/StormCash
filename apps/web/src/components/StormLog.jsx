@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDownLeft, ArrowUpRight, ArrowUpFromLine, ArrowDownRight, RefreshCw } from 'lucide-react';
+import { formatCurrencyCompact } from '../lib/currency';
 
 const StormLog = ({ transactions = [], onTransactionClick }) => {
   const formatRelativeTime = (timestamp) => {
@@ -154,7 +155,7 @@ const StormLog = ({ transactions = [], onTransactionClick }) => {
                       }`}
                     style={{ letterSpacing: '-0.01em' }}
                   >
-                    {tx.direction === 'credit' ? '+' : '−'}${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {tx.direction === 'credit' ? '+' : '−'}{formatCurrencyCompact(tx.amount)}
                   </div>
                 )}
               </motion.div>
