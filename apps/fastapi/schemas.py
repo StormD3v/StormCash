@@ -4,16 +4,20 @@ from datetime import datetime
 from uuid import UUID
 from decimal import Decimal
 
+
 class TransferRequest(BaseModel):
     from_account_number: str = Field(..., min_length=12, max_length=12)
     to_account_number: str = Field(..., min_length=12, max_length=12)
     amount: Decimal = Field(..., gt=0, decimal_places=2)
 
+
 class DepositRequest(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2)
 
+
 class WithdrawRequest(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2)
+
 
 class TransactionResponse(BaseModel):
     id: UUID
@@ -32,6 +36,9 @@ class TransactionResponse(BaseModel):
     network_name: Optional[str] = None
     settlement_time: Optional[datetime] = None
     direction: Optional[str] = None
+    from_account_number: Optional[str] = None
+    to_account_number: Optional[str] = None
+
 
 class LedgerEntryResponse(BaseModel):
     id: UUID
@@ -40,12 +47,15 @@ class LedgerEntryResponse(BaseModel):
     entry_type: str
     created_at: datetime
 
+
 class BalanceResponse(BaseModel):
     account_number: str
     balance: Decimal
 
+
 class HistoryResponse(BaseModel):
     transactions: list[TransactionResponse]
+
 
 class SettlementDetailsResponse(BaseModel):
     transaction_id: str

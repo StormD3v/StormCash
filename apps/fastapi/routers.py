@@ -294,7 +294,9 @@ async def get_history(
                 blockchain_amount=t.blockchain_amount,
                 network_name=t.network_name,
                 settlement_time=t.settlement_time,
-                direction=transaction_directions.get(t.id)
+                direction=transaction_directions.get(t.id),
+                from_account_number=t.from_account_number,
+                to_account_number=t.to_account_number,
             )
             for t in transactions
         ]

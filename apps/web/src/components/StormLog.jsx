@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowDownLeft, ArrowUpRight, ArrowUpFromLine, RefreshCw } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ArrowUpFromLine, ArrowDownRight, RefreshCw } from 'lucide-react';
 
 const StormLog = ({ transactions = [], onTransactionClick }) => {
   const formatRelativeTime = (timestamp) => {
@@ -18,8 +18,10 @@ const StormLog = ({ transactions = [], onTransactionClick }) => {
   };
 
   const mappedTransactions = transactions.map(tx => {
-    const type = tx.transaction_type.charAt(0).toUpperCase() + tx.transaction_type.slice(1);
-    const direction = tx.direction || (tx.transaction_type === 'deposit' ? 'credit' : 'debit');
+    // Normalise to Title case: "DEPOSIT" → "Deposit", "TRANSFER" → "Transfer"
+    const rawType = (tx.transaction_type || '').toLowerCase();
+    const type = rawType.charAt(0).toUpperCase() + rawType.slice(1);
+    const direction = tx.direction || (rawType === 'deposit' ? 'credit' : 'debit');
     const amount = tx.amount ? parseFloat(tx.amount) : 0;
     return {
       id: tx.reference_id || tx.id,
@@ -38,7 +40,7 @@ const StormLog = ({ transactions = [], onTransactionClick }) => {
     if (tx.type === 'Deposit') {
       return {
         title: 'Deposit',
-        description: 'Blockchain deposit',
+        description: 'Funds added to account',
         icon: ArrowDownLeft,
         color: 'text-emerald-400',
         bg: 'bg-emerald-400/8',
@@ -48,32 +50,33 @@ const StormLog = ({ transactions = [], onTransactionClick }) => {
     if (tx.type === 'Withdrawal') {
       return {
         title: 'Withdrawal',
-        description: 'Blockchain withdrawal',
+        description: 'Funds removed from account',
         icon: ArrowUpFromLine,
         color: 'text-rose-400',
         bg: 'bg-rose-400/8',
         border: 'border-rose-400/15',
       };
     }
+    // Transfer — distinguish sent vs received using direction
     if (tx.direction === 'credit') {
-      const fromMask = tx.fromAccount ? `•••• ${tx.fromAccount.slice(-4)}` : 'External';
+      const from = tx.fromAccount || null;
       return {
-        title: 'Incoming Transfer',
-        description: `From ${fromMask}`,
-        icon: ArrowDownLeft,
-        color: 'text-gold',
-        bg: 'bg-gold/8',
-        border: 'border-gold/15',
+        title: 'Transfer Received',
+        description: from ? `From ${from}` : 'Incoming transfer',
+        icon: ArrowDownRight,
+        color: 'text-blue-400',
+        bg: 'bg-blue-400/8',
+        border: 'border-blue-400/15',
       };
     }
-    const toMask = tx.toAccount ? `•••• ${tx.toAccount.slice(-4)}` : 'External';
+    const to = tx.toAccount || null;
     return {
-      title: 'Outgoing Transfer',
-      description: `To ${toMask}`,
+      title: 'Transfer Sent',
+      description: to ? `To ${to}` : 'Outgoing transfer',
       icon: ArrowUpRight,
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/8',
-      border: 'border-blue-400/15',
+      color: 'text-gold',
+      bg: 'bg-gold/8',
+      border: 'border-gold/15',
     };
   };
 

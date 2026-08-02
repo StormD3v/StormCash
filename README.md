@@ -33,7 +33,7 @@ StormCash prototypes an architecture that treats this as a solvable problem: ato
 | Account creation (auto on register) | ✅ Working |
 | Deposit funds | ✅ Working |
 | Withdraw funds (with balance check) | ✅ Working |
-| Account-to-account transfer | ✅ Working (same-user accounts only — see note) |
+| Account-to-account transfer | ✅ Working (cross-user) |
 | Concurrent transfer safety (`SELECT FOR UPDATE`) | ✅ Working |
 | Double-entry ledger (no stored balance field) | ✅ Working |
 | Blockchain settlement simulation — 8 stages | ✅ Working (simulated, not a real chain) |
@@ -41,13 +41,13 @@ StormCash prototypes an architecture that treats this as a solvable problem: ato
 | Transaction explorer (hash, block, confirmations) | ✅ Working (simulated data) |
 | Responsive dashboard — desktop and mobile | ✅ Working |
 | JWT token refresh and session expiry | ✅ Working |
-| User registration via UI | ❌ Disabled — API only |
-| Cross-user peer-to-peer transfers | ❌ Not implemented |
+| User registration via UI | ✅ Working |
+| Cross-user peer-to-peer transfers | ✅ Working |
 | Real blockchain connectivity | ❌ Not implemented |
 | Real fiat on/off ramps | ❌ Not implemented |
 | Multi-currency | ❌ Not implemented |
 
-> **Transfer note:** The current implementation verifies that both accounts in a transfer belong to the authenticated user. This is the single most significant functional gap between the prototype and the stated vision. See `PROJECT_STATUS.md`.
+> **Transfer note:** Transfers work between any two StormCash accounts. The sender's account must belong to the authenticated user. The destination can be any valid account number. Share your account number from the dashboard to receive transfers.
 
 ---
 
@@ -219,7 +219,7 @@ Covers: registration, duplicate username, password mismatch, login, wrong passwo
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| Prototype (now) | Architecture, settlement simulation, polished UI | ✅ Complete |
+| Prototype (now) | Architecture, settlement simulation, polished UI, cross-user transfers | ✅ Complete |
 | Near-term | Cross-user transfers, UI registration, background settlement worker | Not started |
 | Mid-term | Real blockchain settlement, FX integration, fiat on/off ramps | Not started |
 | Long-term | Regulated payment institution, multi-currency, cross-border network | Vision only |
