@@ -13,11 +13,36 @@ DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else ['localhost', '127.0.0.1']
 
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else []
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(
+    ([o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()] +
+     ['https://stormcash.vercel.app'])
+))
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-CORS_ALLOWED_ORIGINS = (os.getenv('CORS_ALLOWED_ORIGINS') or os.getenv('CORS_ORIGINS') or 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002').split(',')
+# Build allowed origins from env var, then always append the production
+# frontend so a missing/misconfigured env var on Railway never silently
+# blocks the deployed Vercel frontend.
+_env_origins = (
+    os.getenv('CORS_ALLOWED_ORIGINS') or
+    os.getenv('CORS_ORIGINS') or
+    'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002'
+).split(',')
+
+_production_origins = [
+    'https://stormcash.vercel.app',
+]
+
+# Deduplicate while preserving order
+CORS_ALLOWED_ORIGINS = list(dict.fromkeys(
+    [o.strip() for o in _env_origins if o.strip()] + _production_origins
+))
+
+# Allow Vercel preview deployment URLs (e.g. stormcash-git-branch-user.vercel.app)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^https://.*\.vercel\.app$',
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
 INSTALLED_APPS = [
