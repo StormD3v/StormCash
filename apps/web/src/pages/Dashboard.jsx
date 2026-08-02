@@ -54,11 +54,16 @@ const Dashboard = () => {
     }
 
     try {
-      const balanceData = await fastAPI.getBalance(accountNumber);
+      // Run balance and history in parallel — avoids sequential auto_advance
+      // calls hitting the same pending transactions twice in quick succession
+      const [balanceData, historyData] = await Promise.all([
+        fastAPI.getBalance(accountNumber),
+        fastAPI.getHistory(accountNumber),
+      ]);
+
       const newBalance = parseFloat(balanceData.balance);
       setBalance(newBalance);
 
-      const historyData = await fastAPI.getHistory(accountNumber);
       const txs = historyData.transactions || [];
       setTransactions(txs);
 

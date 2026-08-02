@@ -146,46 +146,72 @@ async def transfer(
 
 
 def auto_advance_pending_transactions(account: Account, db: Session):
-    pending_txs = db.execute(
-        select(Transaction).where(
-            Transaction.status == TransactionStatus.PENDING,
-            Transaction.transaction_type == TransactionType.TRANSFER,
-            (Transaction.from_account_number == account.account_number) |
-            (Transaction.to_account_number == account.account_number)
-        )
-    ).scalars().all()
+    """
+    Advance any PENDING transfers involving this account.
+    Called as a side-effect of balance/history reads.
+    Errors here must not propagate to the HTTP response — catch and log only.
+    """
+    try:
+        pending_txs = db.execute(
+            select(Transaction).where(
+                Transaction.status == TransactionStatus.PENDING,
+                Transaction.transaction_type == TransactionType.TRANSFER,
+                (Transaction.from_account_number == account.account_number) |
+                (Transaction.to_account_number == account.account_number)
+            )
+        ).scalars().all()
 
-    if pending_txs:
+        if not pending_txs:
+            return
+
         settlement_engine = SettlementEngine(db)
+        changed = False
+
         for tx in pending_txs:
             current_stage = settlement_engine.advance_settlement_stage(tx)
-            if current_stage == "DEPOSITED" and tx.status == TransactionStatus.COMPLETED:
-                to_acc = db.execute(
-                    select(Account).where(
-                        Account.account_number == tx.to_account_number)
-                ).scalar_one_or_none()
-                if to_acc:
-                    # Check if credit entry already exists
-                    existing_credit = db.execute(
-                        select(LedgerEntry).where(
-                            LedgerEntry.transaction_id == tx.id,
-                            LedgerEntry.account_id == to_acc.id,
-                            LedgerEntry.entry_type == EntryType.CREDIT
-                        )
+            changed = True
+
+            if current_stage == "DEPOSITED":
+                # Check status as string since it may have been written
+                # as a raw string ("COMPLETED") rather than the enum value
+                tx_status = tx.status.value if hasattr(
+                    tx.status, 'value') else str(tx.status)
+                if tx_status == "COMPLETED":
+                    to_acc = db.execute(
+                        select(Account).where(
+                            Account.account_number == tx.to_account_number)
                     ).scalar_one_or_none()
-                    if not existing_credit:
-                        final_amount = settlement_engine.blockchain.convert_token_to_fiat(
-                            tx.blockchain_amount or Decimal("0"),
-                            tx.gas_fee or Decimal("0")
-                        )
-                        credit_entry = LedgerEntry(
-                            transaction_id=tx.id,
-                            account_id=to_acc.id,
-                            amount=final_amount,
-                            entry_type=EntryType.CREDIT
-                        )
-                        db.add(credit_entry)
-        db.commit()
+                    if to_acc:
+                        existing_credit = db.execute(
+                            select(LedgerEntry).where(
+                                LedgerEntry.transaction_id == tx.id,
+                                LedgerEntry.account_id == to_acc.id,
+                                LedgerEntry.entry_type == EntryType.CREDIT
+                            )
+                        ).scalar_one_or_none()
+                        if not existing_credit:
+                            final_amount = settlement_engine.blockchain.convert_token_to_fiat(
+                                tx.blockchain_amount or Decimal("0"),
+                                tx.gas_fee or Decimal("0")
+                            )
+                            credit_entry = LedgerEntry(
+                                transaction_id=tx.id,
+                                account_id=to_acc.id,
+                                amount=final_amount,
+                                entry_type=EntryType.CREDIT
+                            )
+                            db.add(credit_entry)
+
+        if changed:
+            db.commit()
+
+    except Exception as e:
+        # Never let settlement advancement break a read endpoint
+        db.rollback()
+        import logging
+        logging.getLogger(__name__).warning(
+            f"auto_advance_pending_transactions failed for {account.account_number}: {e}"
+        )
 
 
 @router.get("/balance/{account_number}", response_model=BalanceResponse)

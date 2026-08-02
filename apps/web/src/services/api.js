@@ -75,7 +75,7 @@ export const authAPI = {
 };
 
 // FastAPI with auth wrapper
-const fastAPIRequest = async (endpoint, options = {}) => {
+const fastAPIRequest = async (endpoint, options = {}, timeoutMs = 15000) => {
   const token = getAccessToken();
 
   // Abort immediately if no access token exists — never send Bearer undefined
@@ -88,39 +88,50 @@ const fastAPIRequest = async (endpoint, options = {}) => {
     throw new Error('No access token');
   }
 
-  const response = await fetch(`${FASTAPI_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
+  // AbortController so hung requests fail after timeoutMs instead of waiting forever
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (response.status !== 401) {
-    return response;
-  }
-
-  // Access token rejected — attempt refresh once
-  try {
-    const newTokens = await authAPI.refreshToken();
-    // refreshToken() only returns on success; retry with the confirmed new token
-    return await fetch(`${FASTAPI_URL}${endpoint}`, {
+  const makeRequest = (tkn) =>
+    fetch(`${FASTAPI_URL}${endpoint}`, {
       ...options,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${newTokens.access}`,
+        'Authorization': `Bearer ${tkn}`,
         ...options.headers,
       },
     });
-  } catch (refreshError) {
-    // Refresh failed (expired, missing, or network) — terminate the session
-    authAPI.logout();
-    if (!authExpiredDispatched) {
-      authExpiredDispatched = true;
-      window.dispatchEvent(new CustomEvent('auth:expired'));
+
+  try {
+    let response = await makeRequest(token);
+
+    if (response.status !== 401) {
+      clearTimeout(timeoutId);
+      return response;
     }
-    throw refreshError;
+
+    // Access token rejected — attempt refresh once
+    try {
+      const newTokens = await authAPI.refreshToken();
+      response = await makeRequest(newTokens.access);
+      clearTimeout(timeoutId);
+      return response;
+    } catch (refreshError) {
+      clearTimeout(timeoutId);
+      authAPI.logout();
+      if (!authExpiredDispatched) {
+        authExpiredDispatched = true;
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+      }
+      throw refreshError;
+    }
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. The server took too long to respond.');
+    }
+    throw err;
   }
 };
 
