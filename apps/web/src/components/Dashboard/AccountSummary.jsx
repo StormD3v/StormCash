@@ -1,10 +1,20 @@
-import React from 'react';
-import { CreditCard, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { CreditCard, ArrowRight, Copy, Check } from 'lucide-react';
 
 const AccountSummary = ({ accountNumber = '', balance = 0, onDetailsClick }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!accountNumber) return;
+    navigator.clipboard.writeText(accountNumber).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const maskedNumber = accountNumber
-    ? `•••• •••• •••• ${accountNumber.slice(-4)}`
-    : '•••• •••• •••• 6435';
+    ? `•••• •••• ${accountNumber.slice(0, 4)} ${accountNumber.slice(4, 8)} ${accountNumber.slice(8)}`
+    : '•••• •••• •••• ••••';
 
   return (
     <div className="rounded-xl px-4 py-3.5 border border-storm-dim/20 bg-panel/90 backdrop-blur-md shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 flex-shrink-0">
@@ -21,11 +31,30 @@ const AccountSummary = ({ accountNumber = '', balance = 0, onDetailsClick }) => 
               Default
             </span>
           </div>
-          <span className="font-mono text-[10px] text-text-low tracking-widest">{maskedNumber}</span>
+          {/* Full account number with copy button */}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="font-mono text-[10px] text-text-low tracking-widest select-all">
+              {accountNumber || '————————————'}
+            </span>
+            {accountNumber && (
+              <button
+                onClick={handleCopy}
+                className="flex items-center justify-center w-4 h-4 rounded text-text-low hover:text-gold transition-colors focus:outline-none"
+                aria-label={copied ? 'Copied' : 'Copy account number'}
+                title={copied ? 'Copied!' : 'Copy account number'}
+                type="button"
+              >
+                {copied
+                  ? <Check size={10} className="text-emerald-400" strokeWidth={2.5} />
+                  : <Copy size={10} strokeWidth={2} />
+                }
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Balance + type — horizontal on mobile, vertical on desktop */}
+      {/* Balance + type */}
       <div className="flex sm:flex-col gap-x-3 gap-y-0.5 items-baseline sm:items-start border-t sm:border-t-0 pt-3 sm:pt-0 border-storm-dim/15 sm:border-l sm:border-storm-dim/15 sm:pl-5">
         <span className="text-[9.5px] font-medium text-text-low uppercase tracking-wider">Checking · USD</span>
         <span className="text-sm font-bold text-text-hi tabular-nums">

@@ -36,7 +36,6 @@ const Dashboard = () => {
   const [modalAction, setModalAction] = useState('deposit');
 
   const accountNumber = user?.accounts?.[0]?.account_number || '';
-  const toAccountNumber = '987654321098';
 
   const activityRef = useRef(null);
 
@@ -293,7 +292,6 @@ const Dashboard = () => {
             isOpen={showTransferModal}
             onClose={() => setShowTransferModal(false)}
             fromAccount={accountNumber}
-            toAccount={toAccountNumber}
             onTransferComplete={handleOperationComplete}
           />
         )}

@@ -58,9 +58,10 @@ const ErrorMessage = ({ message }) => (
 
 // ─── TransferModal ────────────────────────────────────────────────────────────
 
-const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComplete }) => {
+const TransferModal = ({ isOpen, onClose, fromAccount, onTransferComplete }) => {
   const [step, setStep] = useState('input');
   const [amount, setAmount] = useState('');
+  const [toAccountInput, setToAccountInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [transaction, setTransaction] = useState(null);
@@ -76,6 +77,7 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
   const handleClose = useCallback(() => {
     setStep('input');
     setAmount('');
+    setToAccountInput('');
     setError(null);
     setTransaction(null);
     setSettlementStage(null);
@@ -87,6 +89,17 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
     e.preventDefault();
     if (loading) return;
 
+    const destination = toAccountInput.trim();
+    if (!destination || destination.length !== 12 || !/^\d{12}$/.test(destination)) {
+      setError('Please enter a valid 12-digit account number.');
+      return;
+    }
+
+    if (destination === fromAccount) {
+      setError('Destination account cannot be the same as the source account.');
+      return;
+    }
+
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setError('Please enter a valid positive amount.');
@@ -96,7 +109,7 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
     setError(null);
     setLoading(true);
     try {
-      const response = await fastAPI.transfer(fromAccount, toAccount, parsedAmount);
+      const response = await fastAPI.transfer(fromAccount, destination, parsedAmount);
       setTransaction(response);
       setSettlementStage(response.settlement_stage);
       setStep('processing');
@@ -105,7 +118,7 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
     } finally {
       setLoading(false);
     }
-  }, [loading, amount, fromAccount, toAccount]);
+  }, [loading, amount, toAccountInput, fromAccount]);
 
   // ── Escape key handler ───────────────────────────────────────────────────
   useEffect(() => {
@@ -224,8 +237,27 @@ const TransferModal = ({ isOpen, onClose, fromAccount, toAccount, onTransferComp
                   </div>
 
                   <div>
-                    <FieldLabel htmlFor={toId}>To Account</FieldLabel>
-                    <ReadonlyField id={toId} value={toAccount} />
+                    <FieldLabel htmlFor={toId}>To Account Number</FieldLabel>
+                    <input
+                      id={toId}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={12}
+                      value={toAccountInput}
+                      onChange={(e) => {
+                        // Only allow digits
+                        const v = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        setToAccountInput(v);
+                        setError(null);
+                      }}
+                      className="w-full px-4 py-3 rounded-lg bg-ground border border-storm-dim text-text-hi placeholder:text-text-low font-mono tracking-widest focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/30 transition-colors text-sm"
+                      placeholder="12-digit account number"
+                      autoComplete="off"
+                      required
+                    />
+                    <p className="text-[10px] text-text-low mt-1.5">
+                      Enter the recipient's 12-digit StormCash account number.
+                    </p>
                   </div>
 
                   <div>
