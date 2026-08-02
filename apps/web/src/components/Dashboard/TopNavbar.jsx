@@ -1,15 +1,15 @@
 import React from 'react';
-import { Menu, Bell, User } from 'lucide-react';
+import { Menu, Bell, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const TopNavbar = ({ onOpenMobileSidebar, silentRefreshing = false }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const username = user?.username || 'Storm User';
 
   return (
     <header className="h-12 border-b border-storm-dim/20 bg-panel/70 backdrop-blur-md flex items-center justify-between px-5 z-20 flex-shrink-0">
 
-      {/* Left: mobile trigger + page context label */}
+      {/* Left: mobile trigger + breadcrumb */}
       <div className="flex items-center gap-3">
         <button
           onClick={onOpenMobileSidebar}
@@ -20,7 +20,6 @@ const TopNavbar = ({ onOpenMobileSidebar, silentRefreshing = false }) => {
           <Menu size={16} strokeWidth={1.8} />
         </button>
 
-        {/* Desktop breadcrumb context */}
         <div className="hidden md:flex items-center gap-2">
           <span className="text-[10px] font-semibold text-text-low uppercase tracking-[0.12em]">
             Dashboard
@@ -32,7 +31,7 @@ const TopNavbar = ({ onOpenMobileSidebar, silentRefreshing = false }) => {
         </div>
       </div>
 
-      {/* Right: status + bell + user */}
+      {/* Right: sync indicator + bell + user + logout */}
       <div className="flex items-center gap-3.5">
 
         {/* Live sync dot */}
@@ -43,7 +42,6 @@ const TopNavbar = ({ onOpenMobileSidebar, silentRefreshing = false }) => {
           </span>
         </div>
 
-        {/* Divider */}
         <div className="hidden sm:block w-px h-4 bg-storm-dim/20" />
 
         {/* Notifications */}
@@ -56,7 +54,6 @@ const TopNavbar = ({ onOpenMobileSidebar, silentRefreshing = false }) => {
           <span className="absolute top-1.5 right-1.5 w-1 h-1 bg-gold rounded-full" />
         </button>
 
-        {/* Divider */}
         <div className="w-px h-4 bg-storm-dim/20" />
 
         {/* User chip */}
@@ -69,10 +66,24 @@ const TopNavbar = ({ onOpenMobileSidebar, silentRefreshing = false }) => {
               {username}
             </p>
             <span className="text-[9px] text-text-low font-medium tracking-wide mt-0.5 block">
-              Premium
+              Active
             </span>
           </div>
         </div>
+
+        <div className="w-px h-4 bg-storm-dim/20" />
+
+        {/* Logout */}
+        <button
+          onClick={logout}
+          className="p-1.5 rounded-lg hover:bg-storm-dim/10 text-text-low hover:text-rose-400 transition-colors focus:outline-none"
+          aria-label="Sign out"
+          title="Sign out"
+          type="button"
+        >
+          <LogOut size={13} strokeWidth={1.8} />
+        </button>
+
       </div>
     </header>
   );

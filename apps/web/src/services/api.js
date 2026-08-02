@@ -19,11 +19,11 @@ let authExpiredDispatched = false;
 
 // Django Auth API
 export const authAPI = {
-  async register(username, email, password) {
+  async register(username, email, password, password_confirm) {
     const response = await fetch(`${DJANGO_API_URL}/api/auth/register/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ username, email, password, password_confirm }),
     });
     const data = await response.json();
     if (response.ok) {

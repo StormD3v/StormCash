@@ -4,29 +4,56 @@ import { Link, useNavigate } from 'react-router-dom';
 import Sky from '../components/Sky';
 import { useAuth } from '../contexts/AuthContext';
 
-const ObservatoryLogin = () => {
+const Register = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { register } = useAuth();
+
+  const [form, setForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    password_confirm: '',
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setError('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
+    if (form.password !== form.password_confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      const data = await login(username, password);
+      const data = await register(form.username, form.email, form.password, form.password_confirm);
       if (data?.access) {
         navigate('/dashboard', { replace: true });
       } else {
-        setError(data?.detail || 'Invalid credentials.');
-        setIsLoading(false);
+        // Surface the first error message from the Django serializer
+        const firstError =
+          data?.username?.[0] ||
+          data?.email?.[0] ||
+          data?.password?.[0] ||
+          data?.non_field_errors?.[0] ||
+          data?.detail ||
+          'Registration failed. Please try again.';
+        setError(firstError);
       }
     } catch {
       setError('Something went wrong. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -58,10 +85,10 @@ const ObservatoryLogin = () => {
                 <span className="font-display text-gold font-black text-lg leading-none">S</span>
               </div>
               <h1 className="font-display text-2xl font-black text-text-hi tracking-tight mb-1">
-                Welcome back
+                Create your account
               </h1>
               <p className="text-sm text-text-low">
-                Sign in to your StormCash account
+                Open a StormCash prototype account
               </p>
             </div>
 
@@ -78,14 +105,15 @@ const ObservatoryLogin = () => {
               )}
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-text-mid mb-1.5" htmlFor="login-username">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-mid mb-1.5" htmlFor="reg-username">
                   Username
                 </label>
                 <input
-                  id="login-username"
+                  id="reg-username"
+                  name="username"
                   type="text"
-                  value={username}
-                  onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                  value={form.username}
+                  onChange={handleChange}
                   className="w-full rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors bg-ground border border-storm-dim/40 text-text-hi placeholder:text-text-low"
                   placeholder="your_username"
                   autoComplete="username"
@@ -94,17 +122,52 @@ const ObservatoryLogin = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-text-mid mb-1.5" htmlFor="login-password">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-mid mb-1.5" htmlFor="reg-email">
+                  Email
+                </label>
+                <input
+                  id="reg-email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="w-full rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors bg-ground border border-storm-dim/40 text-text-hi placeholder:text-text-low"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-mid mb-1.5" htmlFor="reg-password">
                   Password
                 </label>
                 <input
-                  id="login-password"
+                  id="reg-password"
+                  name="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  value={form.password}
+                  onChange={handleChange}
                   className="w-full rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors bg-ground border border-storm-dim/40 text-text-hi placeholder:text-text-low"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-mid mb-1.5" htmlFor="reg-confirm">
+                  Confirm password
+                </label>
+                <input
+                  id="reg-confirm"
+                  name="password_confirm"
+                  type="password"
+                  value={form.password_confirm}
+                  onChange={handleChange}
+                  className="w-full rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-gold/40 transition-colors bg-ground border border-storm-dim/40 text-text-hi placeholder:text-text-low"
+                  placeholder="Repeat password"
+                  autoComplete="new-password"
                   required
                 />
               </div>
@@ -116,18 +179,23 @@ const ObservatoryLogin = () => {
                 whileHover={!isLoading ? { scale: 1.015 } : {}}
                 whileTap={!isLoading ? { scale: 0.985 } : {}}
               >
-                {isLoading ? 'Signing in…' : 'Sign in'}
+                {isLoading ? 'Creating account…' : 'Create account'}
               </motion.button>
             </form>
 
+            {/* Prototype notice */}
+            <p className="mt-5 text-center text-[10.5px] text-text-low leading-relaxed">
+              This is a prototype — no real money is involved.
+            </p>
+
             <div className="mt-5 pt-5 border-t border-storm-dim/20 text-center">
               <p className="text-sm text-text-low">
-                Don't have an account?{' '}
+                Already have an account?{' '}
                 <Link
-                  to="/register"
+                  to="/login"
                   className="text-gold hover:text-gold-dim transition-colors font-semibold"
                 >
-                  Create one
+                  Sign in
                 </Link>
               </p>
             </div>
@@ -138,4 +206,4 @@ const ObservatoryLogin = () => {
   );
 };
 
-export default ObservatoryLogin;
+export default Register;
