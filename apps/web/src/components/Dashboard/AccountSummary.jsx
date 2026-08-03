@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CreditCard, ArrowRight, Copy, Check } from 'lucide-react';
+import { formatCurrencyCompact } from '../../lib/currency';
 
 const AccountSummary = ({ accountNumber = '', balance = 0, onDetailsClick }) => {
   const [copied, setCopied] = useState(false);

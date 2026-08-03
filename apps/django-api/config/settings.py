@@ -2,8 +2,11 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+import logging
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

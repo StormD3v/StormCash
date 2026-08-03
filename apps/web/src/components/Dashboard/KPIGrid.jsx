@@ -1,6 +1,7 @@
 import React from 'react';
 import { Wallet, ArrowDown, ArrowUp } from 'lucide-react';
 import BalanceHero from './BalanceHero';
+import { formatCurrencyCompact } from '../../lib/currency';
 
 const KPIGrid = ({
   balance = 0,

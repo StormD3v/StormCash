@@ -7,6 +7,9 @@ from database import get_db
 from models import BaseUser
 import os
 from dotenv import load_dotenv
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -27,11 +30,19 @@ async def get_current_user(
     
     try:
         token = credentials.credentials
+        logger.info("[AUTH] Token received, attempting to decode")
+        
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("user_id")
+        
         if user_id is None:
+            logger.error("[AUTH] JWT decoded but user_id is None - raising 401")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"[AUTH] JWT decode failed: {type(e).__name__}: {e} - raising 401")
+        raise credentials_exception
+    except Exception as e:
+        logger.error(f"[AUTH] Unexpected exception during JWT decode: {type(e).__name__}: {e} - raising 401")
         raise credentials_exception
     
     user = db.execute(
@@ -39,6 +50,8 @@ async def get_current_user(
     ).scalar_one_or_none()
     
     if user is None:
+        logger.error(f"[AUTH] User not found in database for user_id: {user_id} - raising 401")
         raise credentials_exception
     
+    logger.info(f"[AUTH] Authentication successful for user: {user.username}")
     return user

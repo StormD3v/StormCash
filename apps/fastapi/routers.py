@@ -10,6 +10,10 @@ from decimal import Decimal
 import secrets
 from datetime import datetime
 import uuid
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -51,6 +55,7 @@ async def transfer(
         # The destination account can belong to any user — that is the
         # point of a transfer.
         if from_account.user_id != current_user.id:
+            logger.error(f"[AUTH] Transfer source account authorization failed - account {request.from_account_number} belongs to user {from_account.user_id}, but authenticated user is {current_user.id} - raising 403")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Source account does not belong to authenticated user"
@@ -181,6 +186,7 @@ def auto_advance_pending_transactions(account: Account, db: Session):
                         select(Account).where(
                             Account.account_number == tx.to_account_number)
                     ).scalar_one_or_none()
+                    
                     if to_acc:
                         existing_credit = db.execute(
                             select(LedgerEntry).where(
@@ -194,6 +200,7 @@ def auto_advance_pending_transactions(account: Account, db: Session):
                                 tx.blockchain_amount or Decimal("0"),
                                 tx.gas_fee or Decimal("0")
                             )
+                            
                             credit_entry = LedgerEntry(
                                 transaction_id=tx.id,
                                 account_id=to_acc.id,
@@ -232,6 +239,7 @@ async def get_balance(
 
     # Verify account belongs to authenticated user
     if account.user_id != current_user.id:
+        logger.error(f"[AUTH] Account authorization failed - account {account_number} belongs to user {account.user_id}, but authenticated user is {current_user.id} - raising 403")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account does not belong to authenticated user"
@@ -275,6 +283,7 @@ async def get_history(
 
     # Verify account belongs to authenticated user
     if account.user_id != current_user.id:
+        logger.error(f"[AUTH] Account authorization failed - account {account_number} belongs to user {account.user_id}, but authenticated user is {current_user.id} - raising 403")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account does not belong to authenticated user"
@@ -354,6 +363,7 @@ async def deposit(
 
         # Verify account belongs to authenticated user
         if account.user_id != current_user.id:
+            logger.error(f"[AUTH] Deposit account authorization failed - account {account_number} belongs to user {account.user_id}, but authenticated user is {current_user.id} - raising 403")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account does not belong to authenticated user"
@@ -427,6 +437,7 @@ async def withdraw(
 
         # Verify account belongs to authenticated user
         if account.user_id != current_user.id:
+            logger.error(f"[AUTH] Withdraw account authorization failed - account {account_number} belongs to user {account.user_id}, but authenticated user is {current_user.id} - raising 403")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account does not belong to authenticated user"
@@ -557,10 +568,12 @@ async def get_settlement_details(
                 break
     
     if not is_authorized:
+        logger.error(f"[AUTH] Settlement endpoint authorization failed for transaction {transaction_id} - user {current_user.id} not authorized - raising 403")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view this transaction"
         )
+    
     # Initialize settlement engine and get details
     settlement_engine = SettlementEngine(db)
     details = settlement_engine.get_settlement_details(transaction)

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
+import { formatCurrencyCompact } from '../../lib/currency';
 
 const BalanceHero = ({ balance = 0, trend = 'stable', accountNumber = '', isMobile = false }) => {
   const [displayBalance, setDisplayBalance] = useState(0);

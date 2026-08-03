@@ -4,6 +4,7 @@ import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { fastAPI } from '../services/api';
 import CopyableText from './CopyableText';
 import ConfirmationProgress from './ConfirmationProgress';
+import { formatCurrencyCompact } from '../lib/currency';
 
 // ─── Detail row ───────────────────────────────────────────────────────────────
 const DetailRow = ({ label, value, copyable = false, highlight = false }) => (

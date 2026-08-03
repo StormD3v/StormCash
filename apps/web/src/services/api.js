@@ -51,17 +51,23 @@ export const authAPI = {
     const refresh = getRefreshToken();
     if (!refresh) throw new Error('No refresh token');
 
+    console.log('[FRONTEND_AUTH] Attempting token refresh');
+
     const response = await fetch(`${DJANGO_API_URL}/api/auth/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh }),
     });
 
+    console.log('[FRONTEND_AUTH] Token refresh response status:', response.status);
+
     if (!response.ok) {
+      console.error('[FRONTEND_AUTH] Token refresh failed');
       throw new Error('Refresh token expired');
     }
 
     const data = await response.json();
+    console.log('[FRONTEND_AUTH] Token refresh successful');
     setTokens(data.access, data.refresh);
     return data;
   },
@@ -111,6 +117,7 @@ const fastAPIRequest = async (endpoint, options = {}, timeoutMs = 15000) => {
       return response;
     }
 
+    console.log('[FRONTEND_AUTH] Got 401, attempting token refresh');
     // Access token rejected — attempt refresh once
     try {
       const newTokens = await authAPI.refreshToken();
