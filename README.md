@@ -21,7 +21,10 @@ StormCash prototypes an architecture that treats this as a solvable problem: ato
 
 ## Screenshots
 
-> *Screenshots pending deployment. Dashboard includes balance overview, transaction history with live settlement timeline, and a transaction explorer showing blockchain settlement details.*
+> <img width="1915" height="920" alt="Screenshot 2026-08-03 163018" src="https://github.com/user-attachments/assets/c0949016-1cf4-4803-a28e-8d333323a1cd" /> <img width="1910" height="908" alt="Screenshot 2026-08-03 163110" src="https://github.com/user-attachments/assets/5703c5c2-74b9-4550-ae5a-5b733aa749ad" /> <img width="1908" height="910" alt="Screenshot 2026-08-03 163608" src="https://github.com/user-attachments/assets/90119d72-60fc-4494-bd9c-68b4c31c4a15" /> <img width="1900" height="925" alt="Screenshot 2026-08-03 163152" src="https://github.com/user-attachments/assets/cd90fde9-3d70-4dc5-92e0-bdd8c4acf844" />
+
+
+
 
 ---
 
