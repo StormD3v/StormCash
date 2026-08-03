@@ -3,9 +3,16 @@ from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
 import logging
+import sys
 
 load_dotenv()
 
+# Configure logging for Railway - output to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent

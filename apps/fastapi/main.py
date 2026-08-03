@@ -4,14 +4,6 @@ from routers import router
 import os
 from dotenv import load_dotenv
 import logging
-import sys
-
-# Configure logging for Railway - output to stdout
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
 
 logger = logging.getLogger(__name__)
 
